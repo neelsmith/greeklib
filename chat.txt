@@ -1,0 +1,557 @@
+### USER
+I want to build a javascript library named `greeklib.js` for working with citable texts in polytonic ancient Greek, packaged so that I can add it to a GitHub repo and use it via jsDeliver.
+The first function I want to write is named `tokenize`. It should accept 1 of 2 possible forms of parameter: 1) a single string or 2) an Array of strings. In both forms, individual strings contain a pair of pipe-delimited values: the first value is the `urn` value, and the second is the `text` value. `tokenize` will return an Array of objects of class `Token`. The `Token` class will have these properties: `sequence` (integer); `urn` (string); `text` (string); `type` (string).
+Summary: `tokenize` will examine the `text` content of a single passage of text and split it into a series of tokens. It will use the `urn` value for that passage to compose indivdual urn values for each token. Here is how to split the text and define urn values.
+**Split the text**: This is how to find the values for the `text` , `type` and `sequence` properties of each `Token` object. In examining the source text, we need to recognize these classes of characters.Any occurrence of the following characters is a single token of class _punctuation_: `.`, `,`, `:`, `;`. The character `ʹ` is a numeric token flag. Any preceding series of non-punctuation, non-whitespace characters is a token of class _number_. Any continuous series of characters that is not part of a number token, is not a white space character and is not a punctuation token constitutes a token of class _lexical_. White space characters separate tokens but do not form part of a token. The `sequence` value is simply the numeric count for each token
+**Example**: The string "Αʹ ἐάνπερ κύκλον πολύγωνον," consists of 5 tokens:
+`1`: `Α`, type `number`
+`2`: ἐάνπερ`, type` lexical`
+`3`: `κύκλον`, type `lexical`
+`4`: `πολύγωνον`, type `lexical`
+`5`: `,` type `punctuation`
+For each token, the `tokenize` function must create a new URN value as follows. The urn value identifying the text to tokenize will have five colon-delimited components. The 4th component is a work identifier separated by periods into subparts. To create a new URN for each token we will first modify the work identifer. It it has 3 period-separated subparts, we will add a fourth part called `tokens`. **Example**: If the text passage has the URN `urn:cts:greekLit:tlg0552.tlg001.ap:1.preface.1`, then its work component is `tlg0552.tlg001.ap`. This has 3 period-separated parts so we will create a new work component `tlg0552.tlg001.ap.tokens`. If the work identifier has already has four subparts , we will append the string `_tokens` to the current work identifier. **Example**: If the text passage has the URN `urn:cts:greekLit:tlg0552.tlg001.ap.normalized:1.preface.1`, the work identifier is `tlg0552.tlg001.ap.normalized`. It already has 4 subparts, so we will create a new work identifier `tlg0552.tlg001.ap.normalized_tokens`.
+We must then create a unique passage identifier for each token as follows. Lexical and numeric tokens should be numbered in a continuous sequence. This value should be appended to the modified URN string with a period. Punctuation tokens are not numbered. Instead, they append to the modified URN string the value of the preceding non-numeric token followed by the character `a`.
+**Example**: In the preceding example, if the URN `urn:cts:greekLit:tlg0552.tlg001.ap:1.proposition.1` identifies the string"Αʹ ἐάνπερ κύκλον πολύγωνον,", then the final URN for the tokens will be:
+*   `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.proposition.1.1` (numeric token)
+    
+*   `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.proposition.1.2` (lexical token)
+    
+*   `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.proposition.1.3` (lexical token)
+    
+*   `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.proposition.1.4` (lexical token)
+    
+*   `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.proposition.1.4a` (numeric token)
+    
+**Test**: Please implement this, then test by writing an HTML page that uses this Array of strings (listed here 1 per line) as the source data:
+```
+urn:cts:greekLit:tlg0552.tlg001.ap:1.proposition.1|Αʹ ἐάνπερ κύκλον / [πολύγωνον] , ἡ τοῦ / [περιγραφέντος] περί/[μετρος] [μείζων] τῆς περιμέ/[τρου] [τοῦ] . περὶ γὰρ κύκλον / [τὸ] [ὑ]/*π*οκείμενον. λέγω ὅτι ἡ [π]ερίμε/τρ[ος] [τοῦ] [ἐστὶν] / [τῆς] [περιμέτρου] [τοῦ] [κύκλου]. [ἐπεὶ] [γὰρ] / [συναμφότερος] [ἡ] [ΒΑΛ] [μείζων] [ἐστὶ] / [τῆς] [ΒΛ] [περιφερείας] [διὰ] τὸ / [τὰ] [αὐτὰ] [πέρατα] πε/ριλαμβάνειν τὴν περιφέρειαν , / συναμφότερος μὲν / ἡ ΓΒ τῆς ΔΒ, συναμφότερος / δὲ ἡ ΛΚ ΚΘ τῆς ΛΘ, συναμφό/[τερος] [δὲ] [ἡ] τῆς ΘΖ, ἔτι δὲ συν*αμ*/[φότερο]ς ἡ ΔΕ ΕΖ τῆς ΔΖ, [ἄρα] [ἡ] / τοῦ [μεί]/ζων ἐστὶν τῆς περιφερείας τοῦ κύκλ[ου] .
+urn:cts:greekLit:tlg0552.tlg001.ap:1.proposition.2|Βʹ / Δύο μεγεθῶν ἀνίσων δοθέντων / δυνατόν ἐστιν εὑρεῖν δύο εὐθείας / ἀνίσους, ὥστε τὴν μείζονα εὐθεῖαν / πρὸς τὴν ἐλάσσονα λόγον ἔχειν ἐλάσ/σονα ἤτοι μείζων μέγεθος πρὸς τὸ / ἔλασσον. ἔστω δύο μεγέθη ἄνισα / τὰ ΑΒΔ, καὶ ἔστω μείζων τὸ ΑΒ. λέγω / ὅτι δυνατόν ἐστι δύο εὐθείας ἀνί/σους εὑρεῖν τὸ εἰρημένον ἐπίταγ/μα ποιούσας. κείσθω διὰ τοῦ Βʹ τοῦ / Αʹ Εὐκλείδου τῶι Δ ἴσον τὸ ΒΓ, καὶ / κείσθω τις εὐθεῖα γραμμὴ ἡ ΖΗ: / τὸ δὴ ΓΑ ἑαυτῶι ἐπισυντιθέμενον / τοῦ Δ. πεπολλαπλασι/άσθω οὖν, καὶ ἔστω τὸ ΑΘ, καὶ ὁσαπλά/σιόν ἐστι τὸ ΑΘ τοῦ ΑΓ, τοσαυταπλά/σιος ἔστω ἡ ΖΗ τῆς ΖΕ: ἔστιν ἄρα, / ὡς τὸ ΘΑ πρὸς ΑΓ, οὕτως τὸ ΖΗ πρὸς ΗΕ: καὶ ἀνά/παλίν ἐστιν, ὡς ἡ ΗΕ πρὸς ΗΖ, οὕτως / τὸ ΑΓ πρὸς ΑΘ. καὶ ἐπεὶ μεῖζόν ἐστιν τὸ / ΑΘ τοῦ Δ, τουτέστι τοῦ ΓΒ, τὸ ἄρα ΓΑ / πρὸς τὸ ΑΘ λόγον ἐλάσσονα ἔχει ἤπερ / [τὸ] [ΓΑ] πρὸς ΓΒ. ἀλλ’ ὡς τὸ ΓΑ πρὸς ΑΘ, οὕτως / ἡ ΕΗ πρὸς ΗΖ: ἡ ΕΗ ἄρα πρὸς ΗΖ ἐλάσσονα / ἤπερ τὸ ΓΑ πρὸς τὸ _Γ_Β: καὶ / συνθέντι ἡ ΕΖ ἄρα πρὸς ΖΗ ἐλάσσονα / λόγον ἔχει ἤπερ τὸ ΑΒ πρὸς ΒΓ {} / {/μα}. ἴσον δὲ τὸ ΒΓ τῶι Δ: ἡ ΕΖ ἄρα πρὸς ΖΗ / ἐλάσσονα λόγον ἔχει ἤπερ τὸ ΑΒ / πρὸς τὸ Δ. εὑρημέναι εἰσὶν ἄρα δύο εὐ/θεῖαι ἄνισοι ποιοῦσαι τὸ εἰρημέ/νον ἐπίταγμα τουτέστιν τὴν μείζο/να πρὸς τὴν ἐλάσσονα λόγον ἔχoν / ἐλάσσονα ἢ τὸ μεῖζον μέγεθος / πρὸς τὸ ἔλασσον.
+urn:cts:greekLit:tlg0552.tlg001.ap:1.proposition.7|/ πυραμὶς βάσιν μὲν ἔχουσα ἰ/σόπλευρον τρίγωνον τὸ ΑΒΓ, καὶ ἐ/πεζεύχθωσαν αἱ ΔΑ ΔΓ ΔΒ: λέ/γω ὅτι τὰ ΑΔΒ ΑΔΓ τρίγωνα ἴσα / ἐστὶ τριγώνωι, οὗ ἡ μὲν βάσις ἴση / ἐστὶ τῆι περιμέτρωι τοῦ ΑΒΓ τρι/γώνου, ἡ δὲ ἀπὸ τῆς κορυφῆς / ἐπὶ τὴν βάσιν κάθετος ἴση τῆι / καθέτωι τῆι ἀπὸ τοῦ Δ ἐπὶ τὴν / ΒΓ ἀγομένην. ἤχθωσαν γὰρ κά/θετοι αἱ ΔΚ ΔΛ ΔΜ: αὗται ἄρα / ἴσαι ἀλλήλαις εἰσίν . καὶ κείσθω τρί/γωνον τὸ ΕΖΗ ἔχον τὴν μὲν ΕΖ / βάσιν τῆ περιμέτρωι τοῦ ΑΒΓ / τριγώνου ἴσην, τὴν δὲ ΗΘ κάθε/τον τῆι ΔΛ ἴσην. ἐπεὶ οὖν τὸ ὑπὸ / τῶν ΒΓ ΔΛ διπλάσιόν ἐστιν τοῦ / ΔΒΓ τριγώνου, ἔστι δὲ καὶ τὸ μὲν / ὑπὸ τῶν ΑΒ ΔΚ / ΑΒΔ τριγώνου, τὸ δὲ ὑπὸ ΑΓΔΜ / διπλάσιον τοῦ ΑΔΓ τριγώνου, / τὸ ἄρα ὑπὸ τῆς περιμέτρου τοῦ ΑΔΓ / τριγώνου, τουτέστι τῆς ΕΖ, καὶ τῆς / ΔΛ, τουτέστι τῆς ΗΘ, διπλάσιόν ἐστι / τῶν ΑΔΒ ΒΔΓ ΑΔΓ τριγώνων. / ἔστι δὲ καὶ τὸ ὑπὸ ΕΖΗΘ διπλάσιον / τοῦ ΕΗΖ τριγώνου: ἴσον ἄρα τὸ ΕΖΗ / τρίγωνον τοῖς ΑΛΒ ΒΔΓ ΑΔΓ τρι/γώνοις.
+```
+The test page should display each line, then tokenize it and display the results.
+
+### ASSISTANT
+Okay, I will develop the `greeklib.js` library with the `tokenize` function and `Token` class as specified. Then, I'll create an HTML test page to demonstrate its functionality using the provided test data.
+
+Here's the `greeklib.js` file:
+
+```javascript
+// greeklib.js
+(function(root) {
+    'use strict';
+
+    class Token {
+        constructor(sequence, urn, text, type) {
+            this.sequence = sequence; // Integer sequence number of token in passage
+            this.urn = urn;           // String URN for the token
+            this.text = text;         // String content of the token
+            this.type = type;         // String type: "number", "lexical", or "punctuation"
+        }
+    }
+
+    const PUNCTUATION_CHARS = ['.', ',', ':', ';'];
+    const NUMERIC_TOKEN_FLAG = 'ʹ';
+
+    function modifyPassageUrnForTokens(passageUrn) {
+        const parts = passageUrn.split(':');
+        
+        if (parts.length < 5) {
+            throw new Error(`Invalid URN format: "${passageUrn}". A passage URN must have at least 5 colon-delimited components (e.g., urn:cts:namespace:workId:passageId).`);
+        }
+
+        const workId = parts[3];
+        const workIdParts = workId.split('.');
+        let newWorkId;
+
+        if (workIdParts.length === 3) {
+            newWorkId = workId + ".tokens";
+        } else if (workIdParts.length === 4) {
+            newWorkId = workId + "_tokens";
+        } else {
+            throw new Error(`Work ID "${workId}" in URN "${passageUrn}" has ${workIdParts.length} parts. Tokenization URN rules are defined for work IDs with 3 or 4 period-separated parts only.`);
+        }
+
+        const originalPassageRef = parts.slice(4).join(':');
+        // Reconstruct URN up to passage level, with modified workId
+        // This becomes the base for individual token URNs
+        return parts.slice(0, 3).join(':') + ':' + newWorkId + ':' + originalPassageRef;
+    }
+
+    function tokenize(input) {
+        const inputTextPairs = [];
+        if (typeof input === 'string') {
+            inputTextPairs.push(input);
+        } else if (Array.isArray(input)) {
+            inputTextPairs.push(...input);
+        } else {
+            throw new Error('Input to tokenize must be a single pipe-delimited string (urn|text) or an Array of such strings.');
+        }
+
+        const allTokens = [];
+
+        for (const pair of inputTextPairs) {
+            const parts = pair.split('|');
+            if (parts.length !== 2) {
+                console.warn(`Skipping malformed input pair: "${pair}". Expected "urn|text" format.`);
+                continue;
+            }
+            const passageUrn = parts[0];
+            const passageText = parts[1];
+
+            if (!passageUrn.trim()) {
+                console.warn(`Skipping input pair with empty URN: "${pair}".`);
+                continue;
+            }
+
+            const baseUrnForTokensInPassage = modifyPassageUrnForTokens(passageUrn);
+
+            let tokenSequenceInPassage = 0;       // Overall token counter for the current passage
+            let lexicalNumericCounterForUrn = 0;  // Counter for lexical/numeric tokens (for URN suffix)
+            let lastLexicalOrNumericUrnId = ""; // Stores the URN ID (e.g., "1", "2") of the last non-punctuation token
+
+            let currentIndex = 0;
+            while (currentIndex < passageText.length) {
+                // 1. Skip whitespace
+                while (currentIndex < passageText.length && /\s/.test(passageText[currentIndex])) {
+                    currentIndex++;
+                }
+                if (currentIndex >= passageText.length) break; // End of text
+
+                let char = passageText[currentIndex];
+                let currentTokenText = "";
+                let currentTokenType = "";
+                let tokenUrnSuffix = "";
+
+                // 2. Check for punctuation token
+                if (PUNCTUATION_CHARS.includes(char)) {
+                    currentTokenText = char;
+                    currentTokenType = "punctuation";
+                    currentIndex++; // Consume the punctuation character
+
+                    if (!lastLexicalOrNumericUrnId) {
+                        // This happens if punctuation is at the start of a passage or follows other punctuation
+                        // without an intervening lexical/numeric token. The spec for URN generation for
+                        // punctuation relies on a "preceding non-punctuation token".
+                        console.warn(`Punctuation token "${currentTokenText}" in URN "${passageUrn}" cannot be assigned a URN suffix according to the rules, as no preceding non-punctuation token ID is available. Assigning a placeholder suffix.`);
+                        tokenUrnSuffix = "error_orphaned_punctuation_a"; // Placeholder for URN
+                    } else {
+                        tokenUrnSuffix = lastLexicalOrNumericUrnId + "a";
+                    }
+                } else {
+                    // 3. Lexical or Numeric token
+                    let tokenBuffer = "";
+                    let tempIndex = currentIndex;
+                    // Greedily consume non-whitespace, non-punctuation characters
+                    while (tempIndex < passageText.length && !/\s/.test(passageText[tempIndex]) && !PUNCTUATION_CHARS.includes(passageText[tempIndex])) {
+                        tokenBuffer += passageText[tempIndex];
+                        tempIndex++;
+                    }
+
+                    // Check if it's a numeric token (ends with NUMERIC_TOKEN_FLAG)
+                    if (tokenBuffer.endsWith(NUMERIC_TOKEN_FLAG) && tokenBuffer.length > NUMERIC_TOKEN_FLAG.length) {
+                        currentTokenText = tokenBuffer.slice(0, -NUMERIC_TOKEN_FLAG.length);
+                        currentTokenType = "number";
+                    } else {
+                        // Otherwise, it's a lexical token
+                        currentTokenText = tokenBuffer;
+                        currentTokenType = "lexical";
+                    }
+                    currentIndex = tempIndex; // Update main index
+
+                    // For lexical or numeric tokens, generate their URN suffix
+                    lexicalNumericCounterForUrn++;
+                    tokenUrnSuffix = lexicalNumericCounterForUrn.toString();
+                    lastLexicalOrNumericUrnId = tokenUrnSuffix; // Update for subsequent punctuation
+                }
+
+                if (currentTokenText && currentTokenType) {
+                    tokenSequenceInPassage++;
+                    const finalTokenUrn = baseUrnForTokensInPassage + "." + tokenUrnSuffix;
+                    allTokens.push(new Token(tokenSequenceInPassage, finalTokenUrn, currentTokenText, currentTokenType));
+                }
+            }
+        }
+        return allTokens;
+    }
+
+    // Expose greeklib
+    const greeklib = {
+        Token,
+        tokenize
+    };
+
+    if (typeof define === 'function' && define.amd) {
+        define(function() { return greeklib; });
+    } else if (typeof module !== 'undefined' && module.exports) {
+        module.exports = greeklib;
+    } else {
+        root.greeklib = greeklib;
+    }
+
+})(typeof self !== 'undefined' ? self : this);
+```
+
+And here's the `test.html` page:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>greeklib.js Test</title>
+    <script src="greeklib.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        pre { background-color: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; word-wrap: break-word; }
+        table { border-collapse: collapse; margin-bottom: 20px; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #e9e9e9; }
+        .error { color: red; font-weight: bold; }
+        hr { margin: 30px 0; }
+    </style>
+</head>
+<body>
+    <h1>greeklib.js Tokenizer Test</h1>
+    <div id="output"></div>
+
+    <script>
+        const testData = [
+            "urn:cts:greekLit:tlg0552.tlg001.ap:1.proposition.1|Αʹ ἐάνπερ κύκλον / [πολύγωνον] , ἡ τοῦ / [περιγραφέντος] περί/[μετρος] [μείζων] τῆς περιμέ/[τρου] [τοῦ] . περὶ γὰρ κύκλον / [τὸ] [ὑ]/*π*οκείμενον. λέγω ὅτι ἡ [π]ερίμε/τρ[ος] [τοῦ] [ἐστὶν] / [τῆς] [περιμέτρου] [τοῦ] [κύκλου]. [ἐπεὶ] [γὰρ] / [συναμφότερος] [ἡ] [ΒΑΛ] [μείζων] [ἐστὶ] / [τῆς] [ΒΛ] [περιφερείας] [διὰ] τὸ / [τὰ] [αὐτὰ] [πέρατα] πε/ριλαμβάνειν τὴν περιφέρειαν , / συναμφότερος μὲν / ἡ ΓΒ τῆς ΔΒ, συναμφότερος / δὲ ἡ ΛΚ ΚΘ τῆς ΛΘ, συναμφό/[τερος] [δὲ] [ἡ] τῆς ΘΖ, ἔτι δὲ συν*αμ*/[φότερο]ς ἡ ΔΕ ΕΖ τῆς ΔΖ, [ἄρα] [ἡ] / τοῦ [μεί]/ζων ἐστὶν τῆς περιφερείας τοῦ κύκλ[ου] .",
+            "urn:cts:greekLit:tlg0552.tlg001.ap:1.proposition.2|Βʹ / Δύο μεγεθῶν ἀνίσων δοθέντων / δυνατόν ἐστιν εὑρεῖν δύο εὐθείας / ἀνίσους, ὥστε τὴν μείζονα εὐθεῖαν / πρὸς τὴν ἐλάσσονα λόγον ἔχειν ἐλάσ/σονα ἤτοι μείζων μέγεθος πρὸς τὸ / ἔλασσον. ἔστω δύο μεγέθη ἄνισα / τὰ ΑΒΔ, καὶ ἔστω μείζων τὸ ΑΒ. λέγω / ὅτι δυνατόν ἐστι δύο εὐθείας ἀνί/σους εὑρεῖν τὸ εἰρημένον ἐπίταγ/μα ποιούσας. κείσθω διὰ τοῦ Βʹ τοῦ / Αʹ Εὐκλείδου τῶι Δ ἴσον τὸ ΒΓ, καὶ / κείσθω τις εὐθεῖα γραμμὴ ἡ ΖΗ: / τὸ δὴ ΓΑ ἑαυτῶι ἐπισυντιθέμενον / τοῦ Δ. πεπολλαπλασι/άσθω οὖν, καὶ ἔστω τὸ ΑΘ, καὶ ὁσαπλά/σιόν ἐστι τὸ ΑΘ τοῦ ΑΓ, τοσαυταπλά/σιος ἔστω ἡ ΖΗ τῆς ΖΕ: ἔστιν ἄρα, / ὡς τὸ ΘΑ πρὸς ΑΓ, οὕτως τὸ ΖΗ πρὸς ΗΕ: καὶ ἀνά/παλίν ἐστιν, ὡς ἡ ΗΕ πρὸς ΗΖ, οὕτως / τὸ ΑΓ πρὸς ΑΘ. καὶ ἐπεὶ μεῖζόν ἐστιν τὸ / ΑΘ τοῦ Δ, τουτέστι τοῦ ΓΒ, τὸ ἄρα ΓΑ / πρὸς τὸ ΑΘ λόγον ἐλάσσονα ἔχει ἤπερ / [τὸ] [ΓΑ] πρὸς ΓΒ. ἀλλ’ ὡς τὸ ΓΑ πρὸς ΑΘ, οὕτως / ἡ ΕΗ πρὸς ΗΖ: ἡ ΕΗ ἄρα πρὸς ΗΖ ἐλάσσονα / ἤπερ τὸ ΓΑ πρὸς τὸ _Γ_Β: καὶ / συνθέντι ἡ ΕΖ ἄρα πρὸς ΖΗ ἐλάσσονα / λόγον ἔχει ἤπερ τὸ ΑΒ πρὸς ΒΓ {} / {/μα}. ἴσον δὲ τὸ ΒΓ τῶι Δ: ἡ ΕΖ ἄρα πρὸς ΖΗ / ἐλάσσονα λόγον ἔχει ἤπερ τὸ ΑΒ / πρὸς τὸ Δ. εὑρημέναι εἰσὶν ἄρα δύο εὐ/θεῖαι ἄνισοι ποιοῦσαι τὸ εἰρημέ/νον ἐπίταγμα τουτέστιν τὴν μείζο/να πρὸς τὴν ἐλάσσονα λόγον ἔχoν / ἐλάσσονα ἢ τὸ μεῖζον μέγεθος / πρὸς τὸ ἔλασσον.",
+            "urn:cts:greekLit:tlg0552.tlg001.ap:1.proposition.7|/ πυραμὶς βάσιν μὲν ἔχουσα ἰ/σόπλευρον τρίγωνον τὸ ΑΒΓ, καὶ ἐ/πεζεύχθωσαν αἱ ΔΑ ΔΓ ΔΒ: λέ/γω ὅτι τὰ ΑΔΒ ΑΔΓ τρίγωνα ἴσα / ἐστὶ τριγώνωι, οὗ ἡ μὲν βάσις ἴση / ἐστὶ τῆι περιμέτρωι τοῦ ΑΒΓ τρι/γώνου, ἡ δὲ ἀπὸ τῆς κορυφῆς / ἐπὶ τὴν βάσιν κάθετος ἴση τῆι / καθέτωι τῆι ἀπὸ τοῦ Δ ἐπὶ τὴν / ΒΓ ἀγομένην. ἤχθωσαν γὰρ κά/θετοι αἱ ΔΚ ΔΛ ΔΜ: αὗται ἄρα / ἴσαι ἀλλήλαις εἰσίν . καὶ κείσθω τρί/γωνον τὸ ΕΖΗ ἔχον τὴν μὲν ΕΖ / βάσιν τῆ περιμέτρωι τοῦ ΑΒΓ / τριγώνου ἴσην, τὴν δὲ ΗΘ κάθε/τον τῆι ΔΛ ἴσην. ἐπεὶ οὖν τὸ ὑπὸ / τῶν ΒΓ ΔΛ διπλάσιόν ἐστιν τοῦ / ΔΒΓ τριγώνου, ἔστι δὲ καὶ τὸ μὲν / ὑπὸ τῶν ΑΒ ΔΚ / ΑΒΔ τριγώνου, τὸ δὲ ὑπὸ ΑΓΔΜ / διπλάσιον τοῦ ΑΔΓ τριγώνου, / τὸ ἄρα ὑπὸ τῆς περιμέτρου τοῦ ΑΔΓ / τριγώνου, τουτέστι τῆς ΕΖ, καὶ τῆς / ΔΛ, τουτέστι τῆς ΗΘ, διπλάσιόν ἐστι / τῶν ΑΔΒ ΒΔΓ ΑΔΓ τριγώνων. / ἔστι δὲ καὶ τὸ ὑπὸ ΕΖΗΘ διπλάσιον / τοῦ ΕΗΖ τριγώνου: ἴσον ἄρα τὸ ΕΖΗ / τρίγωνον τοῖς ΑΛΒ ΒΔΓ ΑΔΓ τρι/γώνοις.",
+            // Example from prompt description for URN generation of tokens
+            "urn:cts:greekLit:tlg0552.tlg001.ap:1.proposition.1|Αʹ ἐάνπερ κύκλον πολύγωνον,",
+            // Test case for work ID with 4 parts
+            "urn:cts:greekLit:tlg0552.tlg001.ap.normalized:1.preface.1|Δόξα Πατρὶ καὶ Υἱῷ.",
+            // Test case for punctuation at start (should show warning/error suffix)
+            "urn:cts:greekLit:tlg0552.tlg001.ap:0.intro.1|, ἀρχὴ λόγου",
+            // Test case for multiple punctuation
+            "urn:cts:greekLit:tlg0552.tlg001.ap:0.intro.2|λόγος . : ; τέλος.",
+            // Test case for invalid URN (too few workId parts)
+            "urn:cts:greekLit:tlg0552.tlg001:1.1|Short work ID."
+        ];
+
+        const outputDiv = document.getElementById('output');
+
+        // Option 1: Process one by one (as the problem description implies `tokenize` returns Array for its input)
+        // testData.forEach((line, index) => {
+        //     const h2 = document.createElement('h2');
+        //     h2.textContent = `Test Case ${index + 1}`;
+        //     outputDiv.appendChild(h2);
+
+        //     const preLine = document.createElement('pre');
+        //     preLine.textContent = "Input: " + line;
+        //     outputDiv.appendChild(preLine);
+            
+        //     try {
+        //         const tokens = greeklib.tokenize(line); // Pass single string
+        //         // ... display tokens ...
+        //     } // ...
+        // });
+
+
+        // Option 2: Process all at once if tokenize is designed to take an array
+        // The prompt says: "tokenize will return an Array of objects of class Token." and
+        // "accept 1 of 2 possible forms of parameter: 1) a single string or 2) an Array of strings"
+        // This implies all tokens from all input strings are returned in one flat array.
+        // Let's display per input string for clarity.
+
+        testData.forEach((line, index) => {
+            const h2 = document.createElement('h2');
+            h2.textContent = `Test Case ${index + 1}`;
+            outputDiv.appendChild(h2);
+
+            const preLine = document.createElement('pre');
+            preLine.textContent = line;
+            outputDiv.appendChild(preLine);
+            
+            const pTokensTitle = document.createElement('p');
+            pTokensTitle.innerHTML = "<strong>Tokens:</strong>";
+            outputDiv.appendChild(pTokensTitle);
+
+            try {
+                // Call tokenize with a single string. It will handle it.
+                // If we wanted to test array input to tokenize:
+                // const tokens = greeklib.tokenize([line]); 
+                // But the problem description implies the output array contains tokens from *all* input strings
+                // if an array is passed. For display clarity, we process one line at a time here.
+                const tokens = greeklib.tokenize(line); 
+                
+                if (tokens.length === 0 && line.split('|')[1] && line.split('|')[1].trim() !== "") {
+                    const pNoTokens = document.createElement('p');
+                    pNoTokens.textContent = "No tokens generated (check console for warnings if input was valid).";
+                    outputDiv.appendChild(pNoTokens);
+                } else if (tokens.length > 0) {
+                    const table = document.createElement('table');
+                    const header = table.createTHead().insertRow();
+                    header.innerHTML = "<th>Seq. in Passage</th><th>URN</th><th>Text</th><th>Type</th>";
+                    const tbody = table.createTBody();
+                    tokens.forEach(token => {
+                        const row = tbody.insertRow();
+                        row.insertCell().textContent = token.sequence;
+                        row.insertCell().textContent = token.urn;
+                        row.insertCell().textContent = token.text;
+                        row.insertCell().textContent = token.type;
+                    });
+                    outputDiv.appendChild(table);
+                } else {
+                     const pNoTokens = document.createElement('p');
+                    pNoTokens.textContent = "No tokens generated (input text might be empty or only whitespace).";
+                    outputDiv.appendChild(pNoTokens);
+                }
+
+            } catch (e) {
+                const preError = document.createElement('p');
+                preError.textContent = e.message;
+                preError.className = 'error';
+                outputDiv.appendChild(preError);
+            }
+            outputDiv.appendChild(document.createElement('hr'));
+        });
+
+    </script>
+</body>
+</html>
+```
+
+**To use this:**
+1.  Save the first code block as `greeklib.js`.
+2.  Save the second code block as `test.html` in the same directory.
+3.  Open `test.html` in a web browser.
+
+This setup will allow you to test the `tokenize` function. The HTML page will iterate through the `testData`, call `greeklib.tokenize` for each entry, and display the original input string followed by a table of the generated tokens or an error message.
+
+The `greeklib.js` is packaged in an IIFE and exposes `greeklib` to the global scope, suitable for use with jsDeliver. For example, if this `greeklib.js` is in a GitHub repo `youruser/yourrepo/greeklib.js`, it could be accessed via `https://cdn.jsdelivr.net/gh/youruser/yourrepo/greeklib.js`.
+
+I've also added some specific test cases to `test.html` to check edge conditions like punctuation at the start of a passage, multiple sequential punctuation marks, and URNs that might not conform to the specific work ID part count rules. The URN generation for punctuation at the start of a passage (or without a preceding non-punctuation token) will show a warning in the console and use a placeholder suffix, as the rules don't cover this scenario.
+
+### USER
+Thank you! Please write documentation for the library.
+
+### ASSISTANT
+Okay, here is the documentation for `greeklib.js`, formatted as a `README.md` file. This would be suitable for the root of your GitHub repository.
+
+```markdown
+# greeklib.js
+
+`greeklib.js` is a JavaScript library designed for working with citable texts in polytonic Ancient Greek. It provides tools for parsing and manipulating Greek text according to common scholarly conventions, particularly those related to CTS (Citable Text Services) URNs.
+
+## Table of Contents
+
+1.  [Installation](#installation)
+2.  [Core Concepts](#core-concepts)
+    *   [CTS URNs](#cts-urns)
+    *   [Tokens](#tokens)
+3.  [API Reference](#api-reference)
+    *   [`greeklib.Token`](#greeklibtoken) (Class)
+    *   [`greeklib.tokenize(input)`](#greeklibtokenizeinput) (Function)
+4.  [Usage Examples](#usage-examples)
+5.  [Tokenization Rules](#tokenization-rules)
+    *   [Text Splitting](#text-splitting)
+    *   [Token Types](#token-types)
+    *   [URN Generation for Tokens](#urn-generation-for-tokens)
+6.  [Contributing](#contributing)
+7.  [License](#license)
+
+## Installation
+
+### Using jsDelivr CDN
+
+You can include `greeklib.js` directly in your HTML file from the jsDelivr CDN. Replace `your-github-username` and `your-repo-name` with your actual GitHub username and repository name, and `@main` with the specific branch, tag, or commit hash if needed.
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/your-github-username/your-repo-name@main/greeklib.js"></script>
+```
+
+### Local Installation
+
+1.  Download `greeklib.js` from the repository.
+2.  Include it in your project:
+
+```html
+<script src="path/to/greeklib.js"></script>
+```
+
+## Core Concepts
+
+### CTS URNs
+
+The library heavily utilizes CTS URNs (Canonical Text Services Uniform Resource Names) for identifying text passages and individual tokens. A typical passage URN structure is:
+
+`urn:cts:<namespace>:<work_id>:<passage_id_or_range>`
+
+Example: `urn:cts:greekLit:tlg0552.tlg001.ap:1.proposition.1`
+
+### Tokens
+
+A token is the smallest unit of text resulting from the tokenization process. Each token has associated properties like its text content, type, sequence number, and a unique URN.
+
+## API Reference
+
+The library exposes a global object `greeklib` when included in a browser environment.
+
+### `greeklib.Token` (Class)
+
+Represents a single token extracted from a text passage.
+
+#### Constructor
+
+`new greeklib.Token(sequence, urn, text, type)`
+
+*   `sequence` (Integer): The 1-based sequence number of this token within its original passage.
+*   `urn` (String): The unique CTS URN identifying this specific token.
+*   `text` (String): The textual content of the token.
+*   `type` (String): The type of the token. Possible values are:
+    *   `"number"`: For numeric tokens (e.g., "Α" when followed by "ʹ").
+    *   `"lexical"`: For word tokens.
+    *   `"punctuation"`: For punctuation marks.
+
+#### Properties
+
+*   `token.sequence`: (Integer) As above.
+*   `token.urn`: (String) As above.
+*   `token.text`: (String) As above.
+*   `token.type`: (String) As above.
+
+### `greeklib.tokenize(input)` (Function)
+
+Analyzes a passage of Greek text (or multiple passages) and splits it into a series of `Token` objects.
+
+#### Parameters
+
+*   `input` (String | Array<String>):
+    *   If a String: A single pipe-delimited string in the format `"urn|text"`.
+        Example: `"urn:cts:greekLit:tlg0001.tlg001.perseus-grc2:1.1|Μῆνιν ἄειδε θεά"`
+    *   If an Array of Strings: Each string in the array must be a pipe-delimited `"urn|text"` pair.
+
+#### Returns
+
+*   (Array<`greeklib.Token`>): An array of `Token` objects. If the input was an array of passage strings, the returned array will contain all tokens from all processed passages, concatenated.
+
+#### Error Handling
+
+*   Throws an `Error` if the input parameter is not a string or an array of strings.
+*   Throws an `Error` if a passage URN is malformed (e.g., less than 5 colon-delimited components or work ID part count is not 3 or 4).
+*   Logs a warning to the console for malformed `"urn|text"` pairs and skips them.
+*   Logs a warning and uses a placeholder URN suffix if punctuation occurs where its URN cannot be determined by the standard rules (e.g., at the very start of a passage).
+
+## Usage Examples
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>greeklib.js Example</title>
+    <script src="greeklib.js"></script> <!-- Or CDN link -->
+</head>
+<body>
+    <div id="results"></div>
+    <script>
+        const passageData1 = "urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.1|Αʹ ἐάνπερ κύκλον.";
+        const passageData2 = "urn:cts:greekLit:tlg0552.tlg001.ap.ver1:1.ex.2|Βʹ πάλιν.";
+
+        try {
+            // Tokenize a single passage
+            const tokens1 = greeklib.tokenize(passageData1);
+            console.log("Tokens from passage 1:", tokens1);
+            
+            // Tokenize multiple passages
+            const allTokens = greeklib.tokenize([passageData1, passageData2]);
+            console.log("All tokens:", allTokens);
+
+            // Displaying tokens (simple example)
+            const resultsDiv = document.getElementById('results');
+            allTokens.forEach(token => {
+                const p = document.createElement('p');
+                p.textContent = `Seq: ${token.sequence}, URN: ${token.urn}, Text: "${token.text}", Type: ${token.type}`;
+                resultsDiv.appendChild(p);
+            });
+
+        } catch (error) {
+            console.error("Error during tokenization:", error);
+        }
+    </script>
+</body>
+</html>
+```
+
+## Tokenization Rules
+
+### Text Splitting and Token Properties (`text`, `type`, `sequence`)
+
+1.  **Whitespace**: Whitespace characters (spaces, newlines, tabs) are used to separate tokens but are not part of any token themselves.
+2.  **Punctuation Tokens**:
+    *   Characters: `.`, `,`, `:`, `;`
+    *   Each occurrence forms a single token of type `"punctuation"`.
+    *   The `text` property is the punctuation character itself.
+3.  **Numeric Tokens**:
+    *   The character `ʹ` (Greek numeral sign / Keraia) acts as a numeric token flag.
+    *   Any continuous series of non-punctuation, non-whitespace characters *immediately preceding* the `ʹ` flag constitutes the `text` of a token of type `"number"`. The `ʹ` itself is not part of the token's `text`.
+    *   Example: "Αʹ" results in a token with `text: "Α"` and `type: "number"`.
+4.  **Lexical Tokens**:
+    *   Any continuous series of characters that is:
+        *   Not part of a numeric token (i.e., not immediately followed by `ʹ`).
+        *   Not a whitespace character.
+        *   Not a punctuation token.
+    *   Constitutes a token of type `"lexical"`.
+    *   The `text` property is the continuous series of characters.
+5.  **Sequence**: The `sequence` property is a 1-based integer, incrementing for each token identified within a single input passage string.
+
+**Example**: `"Αʹ ἐάνπερ κύκλον,"`
+*   Token 1: `sequence: 1`, `text: "Α"`, `type: "number"`
+*   Token 2: `sequence: 2`, `text: "ἐάνπερ"`, `type: "lexical"`
+*   Token 3: `sequence: 3`, `text: "κύκλον"`, `type: "lexical"`
+*   Token 4: `sequence: 4`, `text: ","`, `type: "punctuation"`
+
+### URN Generation for Tokens
+
+Each token is assigned a unique CTS URN derived from the URN of its parent passage.
+
+1.  **Modify Work Identifier**:
+    The 4th component of the passage URN (the work identifier) is modified:
+    *   If the work identifier has 3 period-separated subparts (e.g., `tlg0552.tlg001.ap`):
+        A fourth subpart `tokens` is added.
+        Example: `tlg0552.tlg001.ap` -> `tlg0552.tlg001.ap.tokens`
+    *   If the work identifier has 4 period-separated subparts (e.g., `tlg0552.tlg001.ap.normalized`):
+        The string `_tokens` is appended to the existing fourth subpart.
+        Example: `tlg0552.tlg001.ap.normalized` -> `tlg0552.tlg001.ap.normalized_tokens`
+    *   If the work identifier does not have 3 or 4 parts, an error is thrown.
+
+    The base URN for tokens in a passage becomes:
+    `urn:cts:<namespace>:<modified_work_id>:<original_passage_id_or_range>`
+
+2.  **Append Token-Specific Passage Identifier**:
+    A token-specific identifier is appended to this modified base URN, separated by a period.
+    *   **Lexical and Numeric Tokens**:
+        These tokens are numbered sequentially within the passage, starting from 1. This number becomes their token-specific identifier.
+        Example: `.1`, `.2`, `.3`, ...
+    *   **Punctuation Tokens**:
+        They are *not* independently numbered in the main sequence for URN generation. Instead, their identifier is formed by taking the numeric identifier of the *immediately preceding lexical or numeric token* and appending the letter `a`.
+        Example: If the preceding lexical token was `.4`, a subsequent punctuation token gets `.4a`.
+        *Note*: If a punctuation token appears at the very beginning of a passage or is not preceded by a lexical/numeric token (e.g., multiple punctuation marks in a row), its URN suffix cannot be formed by this rule. In such cases, a warning is logged, and a placeholder suffix like `.error_orphaned_punctuation_a` is used.
+
+**Example of Final Token URNs**:
+Given passage URN `urn:cts:greekLit:tlg0552.tlg001.ap:1.prop.1` and text `"Αʹ λόγος."`
+
+*   Base token URN: `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.prop.1`
+*   Token 1 ("Α", number): `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.prop.1.1`
+*   Token 2 ("λόγος", lexical): `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.prop.1.2`
+*   Token 3 (".", punctuation): `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.prop.1.2a`
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit pull requests or open issues for bugs, feature requests, or improvements.
+
+## License
+
+This library is likely to be licensed under a permissive open-source license like MIT or Apache 2.0. (Developer: Please choose and specify a license).
+```
+
+**Next Steps for You:**
+
+1.  **Choose a License**: Decide on an open-source license (e.g., MIT, Apache 2.0) and add a `LICENSE` file to your repository. Update the "License" section in the `README.md`.
+2.  **GitHub Repository**: Create the GitHub repository, add `greeklib.js`, this `README.md`, and your `LICENSE` file.
+3.  **jsDelivr Link**: Once your repository is public on GitHub, update the jsDelivr link in the `README.md` with your actual username and repository name.
+    For example, if your username is `johndoe` and repo is `greek-tools`, the link would be `https://cdn.jsdelivr.net/gh/johndoe/greek-tools@main/greeklib.js`.
+4.  **Refine**: Review the documentation for clarity and completeness. You might want to add more detailed examples or elaborate on specific edge cases as the library grows.
