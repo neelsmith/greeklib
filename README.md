@@ -15,7 +15,7 @@ In addition to the library itself (`greeklib.js`) and the documentation (`apis.m
 
 ## Planned development 
 
-See the project [issue tracker](https://github.com/neelsmith/greeklib/issues)
+See the project [issue tracker](https://github.com/neelsmith/greeklib/issues).
 
 ## Caveats and technical information
 
