@@ -1,4 +1,4 @@
-# greeklib
+# `greeklib.js` version 1.0.0
 
 > A vibe coded Javascript library for working with text in polytonic ancient Greek.
 
@@ -12,6 +12,10 @@ In addition to the library itself (`greeklib.js`) and the documentation (`apis.m
 
 - `tokenize.html`: a web page illustrating how to parse a citable text into a sequence of citable, classified tokens.
 
+
+## Planned development 
+
+See the project [issue tracker](https://github.com/neelsmith/greeklib/issues)
 
 ## Caveats and technical information
 
