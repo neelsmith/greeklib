@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreekLib.js - Sentence Token Retrieval Test</title>
+    <script src="greeklib.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        h1 {
+            color: #1a5276; /* Darker blue */
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.95em;
+            min-height: 120px;
+            resize: vertical;
+            font-family: "Menlo", "Monaco", "Courier New", monospace;
+        }
+        button {
+            background-color: #1abc9c; /* Teal */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #16a085;
+        }
+        select {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.95em;
+            min-width: 300px; /* Give select some width */
+        }
+        .results-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.9em;
+        }
+        th {
+            background-color: #e9ecef;
+            color: #495057;
+            font-weight: 600;
+        }
+        td.token-text {
+            font-family: "GFS Neohellenic", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+            word-break: break-all;
+        }
+        td.token-urn {
+            word-break: break-all;
+            font-size: 0.85em;
+        }
+        .message {
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 0.95em;
+        }
+        .error-message {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .info-message {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+        }
+        .controls-area { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GreekLib.js - Interactive Sentence Token Retriever</h1>
+        <p>Enter <code>urn|text</code> pairs (one per line). First, analyze the text to identify sentences. Then, select a sentence URN range to view its constituent tokens.</p>
+
+        <div>
+            <label for="inputText">Input Data (URN|Text per line):</label>
+            <textarea id="inputText"></textarea>
+            <button id="analyzeTextButton">1. Analyze & List Sentences</button>
+        </div>
+
+        <div class="controls-area results-section" id="sentenceSelectionArea" style="display:none;">
+            <h2>Select a Sentence Range:</h2>
+            <select id="sentenceSelector"></select>
+            <button id="getTokensButton">2. Get Tokens for Selected Sentence</button>
+        </div>
+
+        <div class="results-section" id="tokenResultsArea">
+            <!-- Token results will be displayed here -->
+        </div>
+         <div class="results-section" id="messageArea">
+            <!-- General messages or errors will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        let allTokensGlobally = []; // To store all tokens from the initial analysis
+
+        // Pre-fill example data that matches the prompt's token list
+        const exampleTextForRetrieval = `urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.1|Δύο μεγεθῶν ἀνίσων δοθέντων δυνατόν ἐστιν εὑρεῖν δύο εὐθείας ἀνίσους, ὥστε τὴν μείζονα εὐθεῖαν πρὸς τὴν ἐλάσσονα λόγον ἔχειν ἐλάσσονα ἤτοι μείζων μέγεθος πρὸς τὸ ἔλασσον. ἔστω δύο μεγέθη ἄνισα τὰ ΑΒΔ, καὶ ἔστω μείζων τὸ ΑΒ. λέγω ὅτι δυνατόν.`;
+        document.getElementById('inputText').value = exampleTextForRetrieval;
+
+        const analyzeTextButton = document.getElementById('analyzeTextButton');
+        const sentenceSelectionArea = document.getElementById('sentenceSelectionArea');
+        const sentenceSelector = document.getElementById('sentenceSelector');
+        const getTokensButton = document.getElementById('getTokensButton');
+        const tokenResultsArea = document.getElementById('tokenResultsArea');
+        const messageArea = document.getElementById('messageArea');
+
+        analyzeTextButton.addEventListener('click', function() {
+            const inputTextVal = document.getElementById('inputText').value;
+            messageArea.innerHTML = ''; // Clear previous messages
+            tokenResultsArea.innerHTML = ''; // Clear previous token results
+            sentenceSelectionArea.style.display = 'none'; // Hide sentence selector initially
+            sentenceSelector.innerHTML = ''; // Clear previous options
+            allTokensGlobally = []; // Reset global tokens
+
+            const lines = inputTextVal.split('\n').map(line => line.trim()).filter(line => line !== "");
+
+            if (lines.length === 0) {
+                displayMessage('Please enter at least one "urn|text" line.', 'info');
+                return;
+            }
+
+            try {
+                // Step 1: Tokenize the entire input
+                allTokensGlobally = greeklib.tokenize(lines);
+                if (allTokensGlobally.length === 0) {
+                     displayMessage('No tokens were generated from the input. Cannot proceed with sentence analysis.', 'info');
+                     return;
+                }
+
+                // Step 2: Get sentence range URNs
+                const sentenceUrns = greeklib.sentences(lines); // sentences calls tokenize internally, but we need allTokens for the next step
+
+                if (sentenceUrns.length === 0) {
+                    displayMessage('No sentences were identified. Check your input for sentence terminators (. or ;).', 'info');
+                    return;
+                }
+
+                // Populate the select menu
+                sentenceUrns.forEach(urn => {
+                    const option = document.createElement('option');
+                    option.value = urn;
+                    option.textContent = urn;
+                    sentenceSelector.appendChild(option);
+                });
+                sentenceSelectionArea.style.display = 'block';
+                displayMessage(`Found ${sentenceUrns.length} sentence(s). Select one to view its tokens.`, 'info');
+
+            } catch (e) {
+                displayMessage(`Error during analysis: ${escapeHtml(e.message)}`, 'error');
+                console.error("Analysis error:", e);
+            }
+        });
+
+        getTokensButton.addEventListener('click', function() {
+            tokenResultsArea.innerHTML = ''; // Clear previous token results
+            const selectedRangeUrn = sentenceSelector.value;
+
+            if (!selectedRangeUrn) {
+                displayMessage('Please select a sentence range from the dropdown.', 'info');
+                return;
+            }
+            if (allTokensGlobally.length === 0) {
+                 displayMessage('No global tokens available. Please analyze text first.', 'error');
+                 return;
+            }
+
+            try {
+                const tokensInSentence = greeklib.tokens(selectedRangeUrn, allTokensGlobally);
+
+                if (tokensInSentence.length === 0) {
+                    tokenResultsArea.innerHTML = '<p class="message info-message">No tokens found for the selected range, or the range was invalid (check console for warnings).</p>';
+                    return;
+                }
+
+                let tableHtml = `<h2>Tokens for Range: ${escapeHtml(selectedRangeUrn)}</h2>`;
+                tableHtml += '<table><thead><tr><th>Seq. (Passage)</th><th>Token URN</th><th>Text</th><th>Type</th></tr></thead><tbody>';
+
+                tokensInSentence.forEach(token => {
+                    tableHtml += `<tr>
+                                    <td>${token.sequence}</td>
+                                    <td class="token-urn">${escapeHtml(token.urn)}</td>
+                                    <td class="token-text">${escapeHtml(token.text)}</td>
+                                    <td>${token.type}</td>
+                                  </tr>`;
+                });
+
+                tableHtml += '</tbody></table>';
+                tokenResultsArea.innerHTML = tableHtml;
+
+            } catch (e) {
+                displayMessage(`Error retrieving tokens: ${escapeHtml(e.message)}`, 'error');
+                console.error("Token retrieval error:", e);
+            }
+        });
+
+        function displayMessage(message, type = 'info') { // type can be 'info' or 'error'
+            messageArea.innerHTML = `<p class="message ${type}-message">${escapeHtml(message)}</p>`;
+        }
+
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>

@@ -106,11 +106,14 @@ First, collect all tokens in the input by passing the parameter to `tokenize`. I
 
 
 The first sentence ends with token 28, since it has token value of `.`.  Its range is therefore from token 1 through 28. The second sentence ends with token 41 since it has a token value of `.` Its range is therefore from token 29 through token 41. We will express these ranges using CTS URN syntax with the identifiers of the first and last tokens in each sentence. The first setence begins has the URN `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.1`: this will be our base reference.
-Token 28 has the URN `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.26a`. We take the final colon-delimited part of that URN, and join it to the initial token URN with `-`. The final part of the second URN is `ex.1.26a`, so our CTS URN identifying the range of this sentence is `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.1-ex.1.26a`. Using the same approach we find a CTS URN string for the second sentence is `|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27-1.ex.1.37a`. The function should return an Array of these values, one per sentence.
+Token 28 has the URN `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.26a`. We take the final colon-delimited part of that URN, and join it to the initial token URN with `-`. The final part of the second URN is `ex.1.26a`, so our CTS URN identifying the range of this sentence is `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.1-ex.1.26a`. Using the same approach we find a CTS URN string for the second sentence is `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27-1.ex.1.37a`. The function should return an Array of these values, one per sentence.
 
 
 Plesae  implement this function and write an HTML page allowing the user to enter string data, analyze it into sentences with the `sentences` function, and disiplay the result.
 
+---
+
+Great. Let's a function `tokens`. It should accept 2 parameters: 1) a string value with a CTS URN range expression 2) an Array of `Token` objects. It should return the Array of `Token` objects identified by the URN range. **Example**: if the range expression was `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27-1.ex.1.37a`, we would collect all tokens in the tokens Array begin with a first token having URN value `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27` and  ending with a Token having URN value `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.37a`.
 
 
 Example data taken from:
