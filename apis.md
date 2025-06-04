@@ -1,7 +1,9 @@
 
+
+
 # greeklib.js
 
-`greeklib.js` is a JavaScript library designed for working with citable texts in polytonic Ancient Greek. It provides tools for parsing and manipulating Greek text according to common scholarly conventions, particularly those related to CTS (Citable Text Services) URNs.
+`greeklib.js` is a JavaScript library designed for working with citable texts in polytonic Ancient Greek. It provides tools for tokenizing Greek text according to common scholarly conventions, identifying sentence structures based on token URNs, retrieving specific token sequences, and defining orthographic properties. The library heavily utilizes CTS (Citable Text Services) URNs.
 
 ## Table of Contents
 
@@ -9,25 +11,31 @@
 2.  [Core Concepts](#core-concepts)
     *   [CTS URNs](#cts-urns)
     *   [Tokens](#tokens)
+    *   [Orthography](#orthography)
 3.  [API Reference](#api-reference)
     *   [`greeklib.Token`](#greeklibtoken) (Class)
-    *   [`greeklib.tokenize(input)`](#greeklibtokenizeinput) (Function)
+    *   [`greeklib.Orthography`](#greekliborthography) (Class)
+    *   [`greeklib.tokenize(input)`](#greeklibtokenizeinput-function)
+    *   [`greeklib.sentences(inputArray)`](#greeklibsentencesinputarray-function)
+    *   [`greeklib.tokens(rangeUrnString, allTokensArray)`](#greeklibtokensrangeurnstring-alltokensarray-function)
+    *   [`greeklib.literarygreek()`](#greeklibliterarygreek--function)
 4.  [Usage Examples](#usage-examples)
 5.  [Tokenization Rules](#tokenization-rules)
     *   [Text Splitting](#text-splitting)
     *   [Token Types](#token-types)
     *   [URN Generation for Tokens](#urn-generation-for-tokens)
-6.  [Contributing](#contributing)
-7.  [License](#license)
+6.  [Sentence Identification](#sentence-identification)
+7.  [Contributing](#contributing)
+8.  [License](#license)
 
 ## Installation
 
 ### Using jsDelivr CDN
 
-You can include `greeklib.js` directly in your HTML file from the jsDelivr CDN like this:
+You can include `greeklib.js` directly in your HTML file from the jsDelivr CDN. Replace `your-github-username` and `your-repo-name` with your actual GitHub username and repository name, and `@main` with the specific branch, tag, or commit hash if needed.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/neelsmith/greeklib@1.0.0/greeklib.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/neelsmith/greeklib/greeklib.js"></script>
 ```
 
 ### Local Installation
@@ -43,15 +51,21 @@ You can include `greeklib.js` directly in your HTML file from the jsDelivr CDN l
 
 ### CTS URNs
 
-The library heavily utilizes CTS URNs (Canonical Text Services Uniform Resource Names) for identifying text passages and individual tokens.The syntax of a CTS URN  is:
+The library heavily utilizes CTS URNs (Canonical Text Services Uniform Resource Names) for identifying text passages and individual tokens. A typical passage URN structure is:
 
-`urn:cts:<namespace>:<work_id>:<passage>`
+`urn:cts:<namespace>:<work_id>:<passage_id_or_range>`
 
 Example: `urn:cts:greekLit:tlg0552.tlg001.ap:1.proposition.1`
 
+Token URNs are derived from passage URNs, as detailed in the [URN Generation for Tokens](#urn-generation-for-tokens) section.
+
 ### Tokens
 
-A token is the smallest unit of text resulting from the tokenization process. Each token has associated properties like its text content, type, sequence number, and a unique URN.
+A token is the smallest unit of text resulting from the tokenization process. Each token is an instance of the `greeklib.Token` class and has associated properties like its text content, type, sequence number, and a unique URN.
+
+### Orthography
+
+An orthography defines a set of linguistic conventions, including the valid character set and specific tokenization rules for a language or text type. In `greeklib.js`, this is represented by the `greeklib.Orthography` class.
 
 ## API Reference
 
@@ -68,10 +82,7 @@ Represents a single token extracted from a text passage.
 *   `sequence` (Integer): The 1-based sequence number of this token within its original passage.
 *   `urn` (String): The unique CTS URN identifying this specific token.
 *   `text` (String): The textual content of the token.
-*   `type` (String): The type of the token. Possible values are:
-    *   `"number"`: For numeric tokens (e.g., "Α" when followed by "ʹ").
-    *   `"lexical"`: For word tokens.
-    *   `"punctuation"`: For punctuation marks.
+*   `type` (String): The type of the token. Possible values: `"number"`, `"lexical"`, or `"punctuation"`.
 
 #### Properties
 
@@ -80,9 +91,27 @@ Represents a single token extracted from a text passage.
 *   `token.text`: (String) As above.
 *   `token.type`: (String) As above.
 
+### `greeklib.Orthography` (Class)
+
+Represents an orthographic system, defining its character set and tokenization behavior.
+
+#### Constructor
+
+`new greeklib.Orthography(name, charsetMethod, tokenizeMethod)`
+
+*   `name` (String): A human-readable name for the orthography.
+*   `charsetMethod` (Function): A method that, when called, returns an array of strings, where each string is a character belonging to the orthography's character set.
+*   `tokenizeMethod` (Function): A method that takes a single string parameter (in `urn|text` format) and returns an array of `greeklib.Token` objects.
+
+#### Properties
+
+*   `orthography.name`: (String) The name of the orthography.
+*   `orthography.charset`: (Function) The method to get the character set.
+*   `orthography.tokenize`: (Function) The method to tokenize text according to this orthography.
+
 ### `greeklib.tokenize(input)` (Function)
 
-Analyzes a passage of Greek text (or multiple passages) and splits it into a series of `Token` objects.
+Analyzes a passage of Greek text (or multiple passages) and splits it into a series of `Token` objects based on the library's default tokenization rules.
 
 #### Parameters
 
@@ -98,113 +127,148 @@ Analyzes a passage of Greek text (or multiple passages) and splits it into a ser
 #### Error Handling
 
 *   Throws an `Error` if the input parameter is not a string or an array of strings.
-*   Throws an `Error` if a passage URN is malformed (e.g., less than 5 colon-delimited components or work ID part count is not 3 or 4).
-*   Logs a warning to the console for malformed `"urn|text"` pairs and skips them.
-*   Logs a warning and uses a placeholder URN suffix if punctuation occurs where its URN cannot be determined by the standard rules (e.g., at the very start of a passage).
+*   Throws an `Error` if a passage URN is malformed.
+*   Logs warnings for malformed `"urn|text"` pairs or problematic URN generation scenarios.
+
+### `greeklib.sentences(inputArray)` (Function)
+
+Identifies sentence boundaries within a tokenized text and returns URN ranges for each sentence.
+
+#### Parameters
+
+*   `inputArray` (Array<String>): An array of pipe-delimited strings, each in the format `"urn|text"`.
+
+#### Returns
+
+*   (Array<String>): An array of CTS URN range strings. Each string represents a sentence. The range is formed by the full URN of the first token in the sentence and the passage identifier part of the last token's URN, separated by a hyphen.
+    Example: `"urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.1-1.ex.1.26a"`
+
+#### Process
+
+1.  Calls `greeklib.tokenize()` internally on the `inputArray` to get a flat list of all tokens.
+2.  Iterates through the tokens. A sentence is considered terminated by a token whose `text` property is `.` or `;`, or by the end of the entire token sequence.
+3.  Constructs a URN range for each identified sentence.
+
+### `greeklib.tokens(rangeUrnString, allTokensArray)` (Function)
+
+Retrieves a subset of `Token` objects from a larger array based on a CTS URN range string.
+
+#### Parameters
+
+*   `rangeUrnString` (String): A CTS URN range string. The expected format is the full URN of the starting token, a hyphen (`-`), and then the passage identifier part of the ending token's URN.
+    Example: `"urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27-1.ex.1.37a"`
+*   `allTokensArray` (Array<`greeklib.Token`>): An array of `Token` objects (e.g., the full output of `greeklib.tokenize()` for a text).
+
+#### Returns
+
+*   (Array<`greeklib.Token`>): An array containing the `Token` objects that fall within the specified range, inclusive. Returns an empty array if the range is invalid or no tokens match.
+
+#### Process
+
+1.  Parses the `rangeUrnString` to determine the full URN of the start token and reconstruct the full URN of the end token.
+2.  Finds the indices of the start and end tokens within `allTokensArray`.
+3.  Returns a slice of `allTokensArray` from the start index to the end index (inclusive).
+
+### `greeklib.literarygreek()` (Function)
+
+A factory function that returns a pre-configured `greeklib.Orthography` object representing standard literary polytonic Ancient Greek.
+
+#### Parameters
+
+None.
+
+#### Returns
+
+*   (`greeklib.Orthography`): An `Orthography` object with:
+    *   `name`: `"Standard literary Greek orthography"`
+    *   `charset()`: A method returning an array of characters including:
+        *   Basic Greek alphabet (uppercase and lowercase).
+        *   Punctuation: `.`, `,`, `;`, `:`.
+        *   A comprehensive list of precomposed Unicode characters for polytonic Greek (from the "Greek and Coptic" and "Greek Extended" Unicode blocks).
+    *   `tokenize(inputString)`: A method that internally calls `greeklib.tokenize(inputString)` using the library's default tokenization rules.
 
 ## Usage Examples
 
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>greeklib.js Example</title>
-    <script src="greeklib.js"></script> <!-- Or CDN link -->
-</head>
-<body>
-    <div id="results"></div>
-    <script>
-        const passageData1 = "urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.1|Αʹ ἐάνπερ κύκλον.";
-        const passageData2 = "urn:cts:greekLit:tlg0552.tlg001.ap.ver1:1.ex.2|Βʹ πάλιν.";
+```javascript
+// Get the standard literary Greek orthography
+const literaryGreek = greeklib.literarygreek();
+console.log("Orthography Name:", literaryGreek.name);
 
-        try {
-            // Tokenize a single passage
-            const tokens1 = greeklib.tokenize(passageData1);
-            console.log("Tokens from passage 1:", tokens1);
-            
-            // Tokenize multiple passages
-            const allTokens = greeklib.tokenize([passageData1, passageData2]);
-            console.log("All tokens:", allTokens);
+// Get its character set
+// const charSet = literaryGreek.charset();
+// console.log("First 10 Chars:", charSet.slice(0, 10).join(" ")); // Charset is very long
 
-            // Displaying tokens (simple example)
-            const resultsDiv = document.getElementById('results');
-            allTokens.forEach(token => {
-                const p = document.createElement('p');
-                p.textContent = `Seq: ${token.sequence}, URN: ${token.urn}, Text: "${token.text}", Type: ${token.type}`;
-                resultsDiv.appendChild(p);
-            });
+// Tokenize using the orthography's tokenizer
+const passageData = "urn:cts:greekLit:tlg0001.tlg001:1.1|Μῆνιν ἄειδε θεά.";
+const tokensFromOrtho = literaryGreek.tokenize(passageData);
+console.log("Tokens (from Ortho):", tokensFromOrtho);
 
-        } catch (error) {
-            console.error("Error during tokenization:", error);
-        }
-    </script>
-</body>
-</html>
+// Tokenize directly using the library's main function
+const tokensDirect = greeklib.tokenize(passageData);
+console.log("Tokens (direct):", tokensDirect);
+
+// --- Sentence and Token Range Example ---
+const corpusData = [
+    "urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.1|Δύο μεγεθῶν. Πρώτη πρότασις.",
+    "urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.2|Ἄλλη δέ τις. Καὶ οὕτως;"
+];
+
+// Get all tokens from the corpus
+const allCorpusTokens = greeklib.tokenize(corpusData);
+
+// Identify sentence ranges
+const sentenceUrns = greeklib.sentences(corpusData);
+console.log("Sentence URN Ranges:", sentenceUrns);
+
+// If sentences were found, get tokens for the first sentence
+if (sentenceUrns.length > 0) {
+    const firstSentenceRange = sentenceUrns[0];
+    const tokensInFirstSentence = greeklib.tokens(firstSentenceRange, allCorpusTokens);
+    console.log(`Tokens in sentence "${firstSentenceRange}":`, tokensInFirstSentence);
+}
 ```
 
 ## Tokenization Rules
 
+These rules apply to the default `greeklib.tokenize()` function and thus to the `tokenize` method of the `Orthography` object returned by `greeklib.literarygreek()`.
+
 ### Text Splitting and Token Properties (`text`, `type`, `sequence`)
 
-1.  **Whitespace**: Whitespace characters (spaces, newlines, tabs) are used to separate tokens but are not part of any token themselves.
+1.  **Whitespace**: Whitespace characters (spaces, newlines, tabs) separate tokens but are not part of any token.
 2.  **Punctuation Tokens**:
     *   Characters: `.`, `,`, `:`, `;`
-    *   Each occurrence forms a single token of type `"punctuation"`.
-    *   The `text` property is the punctuation character itself.
+    *   Each forms a single token of type `"punctuation"`.
 3.  **Numeric Tokens**:
-    *   The character `ʹ` (Greek numeral sign / Keraia) acts as a numeric token flag.
-    *   Any continuous series of non-punctuation, non-whitespace characters *immediately preceding* the `ʹ` flag constitutes the `text` of a token of type `"number"`. The `ʹ` itself is not part of the token's `text`.
-    *   Example: "Αʹ" results in a token with `text: "Α"` and `type: "number"`.
+    *   The character `ʹ` (Greek numeral sign / Keraia) flags a numeric token.
+    *   A preceding continuous series of non-punctuation, non-whitespace characters forms the `text` of a `"number"` token. The `ʹ` is not included in the `text`.
+    *   Example: "Αʹ" -> `text: "Α"`, `type: "number"`.
 4.  **Lexical Tokens**:
-    *   Any continuous series of characters that is:
-        *   Not part of a numeric token (i.e., not immediately followed by `ʹ`).
-        *   Not a whitespace character.
-        *   Not a punctuation token.
-    *   Constitutes a token of type `"lexical"`.
-    *   The `text` property is the continuous series of characters.
-5.  **Sequence**: The `sequence` property is a 1-based integer, incrementing for each token identified within a single input passage string.
-
-**Example**: `"Αʹ ἐάνπερ κύκλον,"`
-*   Token 1: `sequence: 1`, `text: "Α"`, `type: "number"`
-*   Token 2: `sequence: 2`, `text: "ἐάνπερ"`, `type: "lexical"`
-*   Token 3: `sequence: 3`, `text: "κύκλον"`, `type: "lexical"`
-*   Token 4: `sequence: 4`, `text: ","`, `type: "punctuation"`
+    *   Any continuous series of non-punctuation, non-whitespace characters, not part of a numeric token, forms a `"lexical"` token.
+5.  **Sequence**: The `sequence` property is a 1-based integer, incrementing for each token within a single input passage string.
 
 ### URN Generation for Tokens
 
-Each token is assigned a unique CTS URN derived from the URN of its parent passage.
+Each token receives a unique CTS URN.
 
-1.  **Modify Work Identifier**:
-    The 4th component of the passage URN (the work identifier) is modified:
-    *   If the work identifier has 3 period-separated subparts (e.g., `tlg0552.tlg001.ap`):
-        A fourth subpart `tokens` is added.
-        Example: `tlg0552.tlg001.ap` -> `tlg0552.tlg001.ap.tokens`
-    *   If the work identifier has 4 period-separated subparts (e.g., `tlg0552.tlg001.ap.normalized`):
-        The string `_tokens` is appended to the existing fourth subpart.
-        Example: `tlg0552.tlg001.ap.normalized` -> `tlg0552.tlg001.ap.normalized_tokens`
-    *   If the work identifier does not have 3 or 4 parts, an error is thrown.
+1.  **Modify Work Identifier (from passage URN)**:
+    *   If passage work ID has 3 parts (e.g., `tlg0552.tlg001.ap`): Append `.tokens`.
+        -> `tlg0552.tlg001.ap.tokens`
+    *   If passage work ID has 4+ parts (e.g., `tlg0552.tlg001.ap.normalized`): Append `_tokens`.
+        -> `tlg0552.tlg001.ap.normalized_tokens`
+    The base URN for tokens becomes: `urn:cts:<namespace>:<modified_work_id>:<original_passage_id>`
 
-    The base URN for tokens in a passage becomes:
-    `urn:cts:<namespace>:<modified_work_id>:<original_passage_id_or_range>`
+2.  **Append Token-Specific Identifier**:
+    *   **Lexical/Numeric Tokens**: Sequentially numbered within the passage (e.g., `.1`, `.2`).
+    *   **Punctuation Tokens**: Appends the number of the preceding lexical/numeric token followed by `a` (e.g., `.2a`). If no such preceding token exists (e.g., punctuation at start), a placeholder like `.error_orphaned_punctuation_a` is used.
 
-2.  **Append Token-Specific Passage Identifier**:
-    A token-specific identifier is appended to this modified base URN, separated by a period.
-    *   **Lexical and Numeric Tokens**:
-        These tokens are numbered sequentially within the passage, starting from 1. This number becomes their token-specific identifier.
-        Example: `.1`, `.2`, `.3`, ...
-    *   **Punctuation Tokens**:
-        They are *not* independently numbered in the main sequence for URN generation. Instead, their identifier is formed by taking the numeric identifier of the *immediately preceding lexical or numeric token* and appending the letter `a`.
-        Example: If the preceding lexical token was `.4`, a subsequent punctuation token gets `.4a`.
-        *Note*: If a punctuation token appears at the very beginning of a passage or is not preceded by a lexical/numeric token (e.g., multiple punctuation marks in a row), its URN suffix cannot be formed by this rule. In such cases, a warning is logged, and a placeholder suffix like `.error_orphaned_punctuation_a` is used.
+## Sentence Identification
 
-**Example of Final Token URNs**:
-Given passage URN `urn:cts:greekLit:tlg0552.tlg001.ap:1.prop.1` and text `"Αʹ λόγος."`
-
-*   Base token URN: `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.prop.1`
-*   Token 1 ("Α", number): `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.prop.1.1`
-*   Token 2 ("λόγος", lexical): `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.prop.1.2`
-*   Token 3 (".", punctuation): `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.prop.1.2a`
+The `greeklib.sentences()` function identifies sentences based on the following logic:
+*   It first tokenizes all input text passages using `greeklib.tokenize()`.
+*   Sentence terminators are tokens with the text `.` or `;`.
+*   The end of the entire token stream also implicitly ends the last sentence.
+*   The function returns an array of URN range strings. Each string identifies a sentence using the URN of its first token and the passage-specific part of the URN of its last token (e.g., `urn:...:1.1-1.5a`).
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit pull requests or open issues for bugs, feature requests, or improvements.
+Contributions are welcome! Please submit pull requests or open issues for bugs, feature requests, or improvements.

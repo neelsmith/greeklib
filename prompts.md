@@ -113,7 +113,19 @@ Plesae  implement this function and write an HTML page allowing the user to ente
 
 ---
 
-Great. Let's a function `tokens`. It should accept 2 parameters: 1) a string value with a CTS URN range expression 2) an Array of `Token` objects. It should return the Array of `Token` objects identified by the URN range. **Example**: if the range expression was `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27-1.ex.1.37a`, we would collect all tokens in the tokens Array begin with a first token having URN value `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27` and  ending with a Token having URN value `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.37a`.
+Great. Let's now add  a function `tokens`. It should accept 2 parameters: 1) a string value with a CTS URN range expression 2) an Array of `Token` objects. It should return the Array of `Token` objects identified by the URN range. **Example**: if the range expression was `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27-1.ex.1.37a`, we would collect all tokens in the tokens Array begin with a first token having URN value `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27` and  ending with a Token having URN value `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.37a`.
+
+Please implement this. Then write a test HTML page that does the following. Let the user enter string data, then analyze it into sentences with the `sentences` function. Create a selection menu from the results.  Use `tokenize` to collect a list of all tokens in the user-supplied string. When the user chooses one of the displayed references, invoke `tokens` with the user's selection as the first paraemter, and the list of all tokens in the source as the second parameter. Display the results.
+
+---
+Beautiful. I want to create a class `Orthography` with three properties: 1) `name` is a string value, 2) `charset` is a method and 3) `tokenize` is a method.  I then want to create a function `literarygreek` that has no parameters, and returns an `Orthography` object. The value of the `name` parameter should return `Standard literary Greek orthography`. The `charset` method should take no parameters and return a list of the following characters: all the alphabetic characters in the ancient Greek alphabet, the punctuation characters `.`, `,`, `;` and `:`,  and the precomposed Unicode combinations of all the Greek alphabetic characters. The `tokenize` method should take a single string paraemter return the result of passing that string along to the global `tokenize` function.
+
+Please implmeent this. Then write an HTML test page that gets an `Orthography` object using the `literarygreek` function, and tests all of its properties as follows. 1) display the value of the `name` property; 2) display the value of invoking the `charset` function 3) allow the user to enter a string, and then display the result of invoking the `Orthography` object's `tokenize` function
+  
+---
+Great! Please write documentation for the `greeklib.js` library.
+
+
 
 
 Example data taken from:

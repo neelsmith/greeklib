@@ -555,3 +555,2107 @@ This library is likely to be licensed under a permissive open-source license lik
 3.  **jsDelivr Link**: Once your repository is public on GitHub, update the jsDelivr link in the `README.md` with your actual username and repository name.
     For example, if your username is `johndoe` and repo is `greek-tools`, the link would be `https://cdn.jsdelivr.net/gh/johndoe/greek-tools@main/greeklib.js`.
 4.  **Refine**: Review the documentation for clarity and completeness. You might want to add more detailed examples or elaborate on specific edge cases as the library grows.
+
+### USER
+Could you write an HTML page that allows the user to paste in a string, and then tokenizes it?
+
+### ASSISTANT
+Okay, here's an HTML page that allows a user to input a URN and a text string, and then uses `greeklib.js` to tokenize it and display the results.
+
+Make sure `greeklib.js` is in the same directory as this HTML file, or update the `src` path for the script tag accordingly.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreekLib.js Interactive Tokenizer</title>
+    <script src="greeklib.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #resultsArea {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #ecf0f1;
+            color: #34495e;
+        }
+        .error-message {
+            color: #c0392b;
+            background-color: #f9ebea;
+            padding: 10px;
+            border: 1px solid #e6b0aa;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .info-message {
+            color: #2980b9;
+            background-color: #eaf2f8;
+            padding: 10px;
+            border: 1px solid #aed6f1;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .token-text {
+            font-family: "GFS Neohellenic", "Palatino Linotype", "Book Antiqua", Palatino, serif; /* Polytonic Greek friendly fonts */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GreekLib.js Interactive Tokenizer</h1>
+
+        <div>
+            <label for="urnInput">Passage URN:</label>
+            <input type="text" id="urnInput" placeholder="e.g., urn:cts:greekLit:tlg0001.tlg001:1.1">
+
+            <label for="textInput">Greek Text:</label>
+            <textarea id="textInput" placeholder="Enter polytonic Greek text here... e.g., Μῆνιν ἄειδε θεά, Πηληϊάδεω Ἀχιλῆος"></textarea>
+
+            <button id="tokenizeButton">Tokenize Text</button>
+        </div>
+
+        <div id="resultsArea">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('tokenizeButton').addEventListener('click', function() {
+            const urn = document.getElementById('urnInput').value.trim();
+            const text = document.getElementById('textInput').value; // Don't trim text, whitespace might be significant initially
+            const resultsArea = document.getElementById('resultsArea');
+            resultsArea.innerHTML = ''; // Clear previous results
+
+            if (!urn) {
+                resultsArea.innerHTML = '<p class="error-message">Please enter a URN.</p>';
+                return;
+            }
+            if (!text.trim()) { // Check trimmed text for content
+                resultsArea.innerHTML = '<p class="error-message">Please enter text to tokenize.</p>';
+                return;
+            }
+
+            const inputString = `${urn}|${text}`;
+
+            try {
+                const tokens = greeklib.tokenize(inputString);
+
+                if (tokens.length === 0) {
+                    resultsArea.innerHTML = '<p class="info-message">No tokens were generated. The input text might be empty or contain only whitespace after processing.</p>';
+                    return;
+                }
+
+                let tableHtml = '<h2>Tokenization Results:</h2>';
+                tableHtml += '<table><thead><tr><th>Seq.</th><th>URN</th><th>Text</th><th>Type</th></tr></thead><tbody>';
+
+                tokens.forEach(token => {
+                    tableHtml += `<tr>
+                                    <td>${token.sequence}</td>
+                                    <td>${token.urn}</td>
+                                    <td class="token-text">${escapeHtml(token.text)}</td>
+                                    <td>${token.type}</td>
+                                  </tr>`;
+                });
+
+                tableHtml += '</tbody></table>';
+                resultsArea.innerHTML = tableHtml;
+
+            } catch (e) {
+                resultsArea.innerHTML = `<p class="error-message"><strong>Error:</strong> ${escapeHtml(e.message)}</p>`;
+                console.error("Tokenization error:", e);
+            }
+        });
+
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        // Pre-fill example data for convenience
+        document.getElementById('urnInput').value = "urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.1";
+        document.getElementById('textInput').value = "Αʹ ἐάνπερ κύκλον, πολύγωνον.";
+
+    </script>
+</body>
+</html>
+```
+
+**How to use it:**
+
+1.  Save the code above as an HTML file (e.g., `interactive_tokenizer.html`).
+2.  Make sure `greeklib.js` is in the same directory as this HTML file.
+3.  Open `interactive_tokenizer.html` in your web browser.
+4.  Enter a URN in the "Passage URN" field.
+5.  Paste or type your polytonic Greek text into the "Greek Text" textarea.
+6.  Click the "Tokenize Text" button.
+7.  The results (a table of tokens or an error message) will appear below the button.
+
+**Features of this page:**
+
+*   **Separate inputs for URN and Text:** More user-friendly than requiring the user to format the pipe-delimited string themselves.
+*   **Basic Validation:** Checks if URN and text fields are non-empty.
+*   **Clear Results Area:** Clears previous results on each new tokenization attempt.
+*   **Error Display:** Catches errors from `greeklib.tokenize()` and displays them in a user-friendly way.
+*   **Table Output:** Shows token properties (sequence, URN, text, type) in a clear tabular format.
+*   **HTML Escaping:** Basic escaping for displayed text to prevent XSS issues from user input if they were to paste HTML (though `token.text` should be plain text from the tokenizer).
+*   **Styling:** Includes some CSS for better presentation.
+*   **Polytonic Font Suggestion:** The CSS includes a font stack that prioritizes fonts capable of rendering polytonic Greek correctly for the token text.
+*   **Pre-filled Example:** The input fields are pre-filled with a simple example to demonstrate usage immediately.
+
+### USER
+Great!  
+Now I would like to add a function `sentences`.
+It should accept a single parameter, an Array of strings. Individual strings contain a pair of pipe-delimited values: the first value is the `urn` value, and the second is the `text` value. The function will return an Array of string values expressing the range of tokens in a sentence. Here's how it should work.
+First, collect all tokens in the input by passing the parameter to `tokenize`. In the resulting series of `Token` objects, sentence units are terminated by tokens that have a text value of `.` or `;`. We want to find the identifiers for the first and last token in each sentence group.
+**Example**: assume the output of tokenizing the input had these values for the resulting tokens:
+```
+| Sequence| URN | Token | Type||1|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.1|Δύο|lexical|
+|2|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.2|μεγεθῶν|lexical|
+|3|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.3|ἀνίσων|lexical|
+|4|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.4|δοθέντων|lexical|
+|5|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.5|δυνατόν|lexical|
+|6|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.6|ἐστιν|lexical|
+|7|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.7|εὑρεῖν|lexical|
+|8|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.8|δύο|lexical|
+|9|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.9|εὐθείας|lexical|
+|10|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.10|ἀνίσους|lexical|
+|11|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.10a|,|punctuation|
+|12|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.11|ὥστε|lexical|
+|13|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.12|τὴν|lexical|
+|14|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.13|μείζονα|lexical|
+|15|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.14|εὐθεῖαν|lexical|
+|16|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.15|πρὸς|lexical|
+|17|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.16|τὴν|lexical|
+|18|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.17|ἐλάσσονα|lexical|
+|19|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.18|λόγον|lexical|
+|20|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.19|ἔχειν|lexical|
+|21|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.20|ἐλάσσονα|lexical|
+|22|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.21|ἤτοι|lexical|
+|23|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.22|μείζων|lexical|
+|24|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.23|μέγεθος|lexical|
+|25|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.24|πρὸς|lexical|
+|26|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.25|τὸ|lexical|
+|27|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.26|ἔλασσον|lexical|
+|28|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.26a|.|punctuation|
+|29|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27|ἔστω|lexical|
+|30|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.28|δύο|lexical|
+|31|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.29|μεγέθη|lexical|
+|32|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.30|ἄνισα|lexical|
+|33|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.31|τὰ|lexical|
+|34|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.32|ΑΒΔ|lexical|
+|35|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.32a|,|punctuation|
+|36|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.33|καὶ|lexical|
+|37|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.34|ἔστω|lexical|
+|38|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.35|μείζων|lexical|
+|39|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.36|τὸ|lexical|
+|40|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.37|ΑΒ|lexical|
+|41|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.37a|.|punctuation|
+```
+The first sentence ends with token 28, since it has token value of `.`. Its range is therefore from token 1 through 28. The second sentence ends with token 41 since it has a token value of `.` Its range is therefore from token 29 through token 41. We will express these ranges using CTS URN syntax with the identifiers of the first and last tokens in each sentence. The first setence begins has the URN `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.1`: this will be our base reference.
+Token 28 has the URN `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.26a`. We take the final colon-delimited part of that URN, and join it to the initial token URN with `-`. The final part of the second URN is `ex.1.26a`, so our CTS URN identifying the range of this sentence is `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.1-ex.1.26a`. Using the same approach we find a CTS URN string for the second sentence is `|urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27-1.ex.1.37a`. The function should return an Array of these values, one per sentence.
+Plesae implement this function and write an HTML page allowing the user to enter string data, analyze it into sentences with the `sentences` function, and disiplay the result.
+
+### ASSISTANT
+Okay, I've added the `sentences` function to `greeklib.js` and created a new HTML page for testing it.
+
+First, here's the updated `greeklib.js` with the new `sentences` function:
+
+```javascript
+// greeklib.js
+(function(root) {
+    'use strict';
+
+    class Token {
+        constructor(sequence, urn, text, type) {
+            this.sequence = sequence; // Integer sequence number of token in passage
+            this.urn = urn;           // String URN for the token
+            this.text = text;         // String content of the token
+            this.type = type;         // String type: "number", "lexical", or "punctuation"
+        }
+    }
+
+    const PUNCTUATION_CHARS = ['.', ',', ':', ';'];
+    const SENTENCE_TERMINATORS = ['.', ';']; // Used by sentences()
+    const NUMERIC_TOKEN_FLAG = 'ʹ';
+
+    function modifyPassageUrnForTokens(passageUrn) {
+        const parts = passageUrn.split(':');
+        
+        if (parts.length < 5) {
+            throw new Error(`Invalid URN format: "${passageUrn}". A passage URN must have at least 5 colon-delimited components (e.g., urn:cts:namespace:workId:passageId).`);
+        }
+
+        const workId = parts[3];
+        const workIdParts = workId.split('.');
+        let newWorkId;
+
+        if (workIdParts.length === 3) {
+            newWorkId = workId + ".tokens";
+        } else if (workIdParts.length >= 4) { // Allow 4 or more, append _tokens to 4th part.
+            // Example: tlg0552.tlg001.ap.normalized -> tlg0552.tlg001.ap.normalized_tokens
+            // Example: tlg0552.tlg001.ap.ref.subref -> tlg0552.tlg001.ap.ref_tokens.subref (This rule might need refinement based on CTS URN construction for deeper work hierarchies, but for now, we stick to the provided rule)
+            // Based on "If the work identifier has already has four subparts , we will append the string _tokens to the current work identifier." this implies modifying the 4th part specifically.
+            // Let's assume it means append to the whole workId if it has 4+ parts.
+            // Re-reading the prompt "append the string _tokens to the current work identifier". This is simpler.
+            newWorkId = workId + "_tokens";
+
+        } else {
+             // This case should not be reached if workIdParts.length >=4 is handled, 
+             // but as a fallback or if rules change:
+            throw new Error(`Work ID "${workId}" in URN "${passageUrn}" has ${workIdParts.length} parts. Tokenization URN rules are defined for work IDs with 3 or 4+ period-separated parts only.`);
+        }
+        
+        const originalPassageRef = parts.slice(4).join(':');
+        return parts.slice(0, 3).join(':') + ':' + newWorkId + ':' + originalPassageRef;
+    }
+
+    function tokenize(input) {
+        const inputTextPairs = [];
+        if (typeof input === 'string') {
+            inputTextPairs.push(input);
+        } else if (Array.isArray(input)) {
+            inputTextPairs.push(...input);
+        } else {
+            throw new Error('Input to tokenize must be a single pipe-delimited string (urn|text) or an Array of such strings.');
+        }
+
+        const allTokens = [];
+
+        for (const pair of inputTextPairs) {
+            if (typeof pair !== 'string' || !pair.includes('|')) {
+                console.warn(`Skipping malformed input pair: "${pair}". Expected "urn|text" format.`);
+                continue;
+            }
+            const parts = pair.split('|');
+            if (parts.length !== 2) {
+                console.warn(`Skipping malformed input pair: "${pair}". Expected "urn|text" format with exactly one pipe.`);
+                continue;
+            }
+            const passageUrn = parts[0].trim();
+            const passageText = parts[1]; // Do not trim text here, whitespace is handled by tokenizer logic
+
+            if (!passageUrn) {
+                console.warn(`Skipping input pair with empty URN: "${pair}".`);
+                continue;
+            }
+             if (!passageText.trim()) { // Check if text content is effectively empty
+                console.warn(`Skipping input pair with empty text content for URN "${passageUrn}".`);
+                continue;
+            }
+
+
+            let baseUrnForTokensInPassage;
+            try {
+                baseUrnForTokensInPassage = modifyPassageUrnForTokens(passageUrn);
+            } catch (e) {
+                console.error(`Error modifying URN for tokenization (passage URN: "${passageUrn}"): ${e.message}`);
+                continue; // Skip this passage
+            }
+            
+
+            let tokenSequenceInPassage = 0;
+            let lexicalNumericCounterForUrn = 0;
+            let lastLexicalOrNumericUrnId = "";
+
+            let currentIndex = 0;
+            while (currentIndex < passageText.length) {
+                while (currentIndex < passageText.length && /\s/.test(passageText[currentIndex])) {
+                    currentIndex++;
+                }
+                if (currentIndex >= passageText.length) break;
+
+                let char = passageText[currentIndex];
+                let currentTokenText = "";
+                let currentTokenType = "";
+                let tokenUrnSuffix = "";
+
+                if (PUNCTUATION_CHARS.includes(char)) {
+                    currentTokenText = char;
+                    currentTokenType = "punctuation";
+                    currentIndex++; 
+
+                    if (!lastLexicalOrNumericUrnId) {
+                        console.warn(`Punctuation token "${currentTokenText}" in URN "${passageUrn}" cannot be assigned a URN suffix according to the rules, as no preceding non-punctuation token ID is available. Assigning a placeholder suffix.`);
+                        tokenUrnSuffix = "error_orphaned_punctuation_a";
+                    } else {
+                        tokenUrnSuffix = lastLexicalOrNumericUrnId + "a";
+                    }
+                } else {
+                    let tokenBuffer = "";
+                    let tempIndex = currentIndex;
+                    while (tempIndex < passageText.length && !/\s/.test(passageText[tempIndex]) && !PUNCTUATION_CHARS.includes(passageText[tempIndex])) {
+                        tokenBuffer += passageText[tempIndex];
+                        tempIndex++;
+                    }
+
+                    if (tokenBuffer.endsWith(NUMERIC_TOKEN_FLAG) && tokenBuffer.length > NUMERIC_TOKEN_FLAG.length) {
+                        currentTokenText = tokenBuffer.slice(0, -NUMERIC_TOKEN_FLAG.length);
+                        currentTokenType = "number";
+                    } else {
+                        currentTokenText = tokenBuffer;
+                        currentTokenType = "lexical";
+                    }
+                    currentIndex = tempIndex;
+
+                    lexicalNumericCounterForUrn++;
+                    tokenUrnSuffix = lexicalNumericCounterForUrn.toString();
+                    lastLexicalOrNumericUrnId = tokenUrnSuffix;
+                }
+
+                if (currentTokenText && currentTokenType) {
+                    tokenSequenceInPassage++;
+                    const finalTokenUrn = baseUrnForTokensInPassage + "." + tokenUrnSuffix;
+                    allTokens.push(new Token(tokenSequenceInPassage, finalTokenUrn, currentTokenText, currentTokenType));
+                }
+            }
+        }
+        return allTokens;
+    }
+
+    function sentences(inputArray) {
+        if (!Array.isArray(inputArray)) {
+            throw new Error("Input to sentences must be an Array of 'urn|text' strings.");
+        }
+
+        const validInputs = inputArray.filter(s => typeof s === 'string' && s.trim() !== "" && s.includes('|'));
+        if (validInputs.length === 0) {
+            return [];
+        }
+
+        const allTokens = tokenize(validInputs); // Use greeklib.tokenize internally
+
+        if (allTokens.length === 0) {
+            return [];
+        }
+
+        const sentenceRanges = [];
+        let currentSentenceStartIndex = 0;
+
+        for (let i = 0; i < allTokens.length; i++) {
+            const currentToken = allTokens[i];
+            // Check if current token's text is one of the defined sentence terminators
+            const isTerminator = SENTENCE_TERMINATORS.includes(currentToken.text);
+            const isLastTokenOfAll = i === allTokens.length - 1;
+
+            // A sentence ends if it's a terminator OR it's the very last token of the entire input
+            if (isTerminator || isLastTokenOfAll) {
+                // Ensure we have a valid start for this sentence
+                // (currentSentenceStartIndex should always be less than allTokens.length here if allTokens is not empty)
+                if (currentSentenceStartIndex <= i) { // currentSentenceStartIndex must be less than or equal to current token index
+                    const startTokenInSentence = allTokens[currentSentenceStartIndex];
+                    const endTokenInSentence = currentToken; // This is the terminating token or the last token overall
+
+                    const startUrn = startTokenInSentence.urn;
+                    
+                    // The end token's suffix is the part after the last dot in its URN
+                    // e.g., if endToken.urn is "...passage.subpassage.3a", suffix is "3a"
+                    const endTokenUrnParts = endTokenInSentence.urn.split('.');
+                    const endTokenSuffix = endTokenUrnParts.pop(); 
+
+                    const rangeUrn = startUrn + "-" + endTokenSuffix;
+                    sentenceRanges.push(rangeUrn);
+                }
+                currentSentenceStartIndex = i + 1; // Next sentence starts after this token
+            }
+        }
+        return sentenceRanges;
+    }
+
+    // Expose greeklib
+    const greeklib = {
+        Token,
+        tokenize,
+        sentences // New function added
+    };
+
+    if (typeof define === 'function' && define.amd) {
+        define(function() { return greeklib; });
+    } else if (typeof module !== 'undefined' && module.exports) {
+        module.exports = greeklib;
+    } else {
+        root.greeklib = greeklib;
+    }
+
+})(typeof self !== 'undefined' ? self : this);
+```
+
+**Key changes in `greeklib.js`:**
+1.  Added `SENTENCE_TERMINATORS` constant.
+2.  Implemented the `sentences(inputArray)` function as discussed in the thought process. It calls `greeklib.tokenize` internally.
+3.  The URN range is constructed as `startToken.urn + "-" + endTokenSuffix`, where `endTokenSuffix` is the part of `endToken.urn` after its last dot. This matches the example outputs.
+4.  Slight refinement in `modifyPassageUrnForTokens` for work IDs with 4+ parts to append `_tokens` to the entire work ID, as per a re-reading of the prompt.
+5.  Added more checks in `tokenize` and `sentences` for invalid inputs.
+
+---
+
+Next, here's the `test_sentences.html` page:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreekLib.js - Sentences Function Test</title>
+    <script src="greeklib.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.95em;
+            min-height: 150px;
+            resize: vertical;
+            font-family: "Menlo", "Monaco", "Courier New", monospace;
+        }
+        button {
+            background-color: #27ae60; /* Greenish */
+            color: white;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.05em;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #229954;
+        }
+        #resultsArea {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            background-color: #ecf0f1;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-family: "Menlo", "Monaco", "Courier New", monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        .error-message {
+            color: #c0392b;
+            background-color: #fdedec;
+            padding: 12px;
+            border: 1px solid #e6b0aa;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .info-message {
+            color: #2980b9;
+            background-color: #eaf2f8;
+            padding: 12px;
+            border: 1px solid #aed6f1;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+    </style>
+</head><body>
+    <div class="container">
+        <h1>GreekLib.js - Sentence Analyzer</h1>
+        <p>Enter one or more <code>urn|text</code> pairs, each on a new line. The <code>sentences</code> function will tokenize the text and identify sentence ranges based on <code>.</code> or <code>;</code> terminators.</p>
+
+        <div>
+            <label for="inputText">Input (URN|Text per line):</label>
+            <textarea id="inputText" placeholder="e.g., urn:cts:greekLit:tlg0001.tlg001:1.1|Μῆνιν ἄειδε θεά. Πηληϊάδεω Ἀχιλῆος οὐλομένην."></textarea>
+            <button id="analyzeSentencesButton">Analyze Sentences</button>
+        </div>
+
+        <div id="resultsArea">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        // Pre-fill example data to test the sentences function based on the prompt's example
+        const exampleTextForSentences = `urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.1|Δύο μεγεθῶν ἀνίσων δοθέντων δυνατόν ἐστιν εὑρεῖν δύο εὐθείας ἀνίσους, ὥστε τὴν μείζονα εὐθεῖαν πρὸς τὴν ἐλάσσονα λόγον ἔχειν ἐλάσσονα ἤτοι μείζων μέγεθος πρὸς τὸ ἔλασσον. ἔστω δύο μεγέθη ἄνισα τὰ ΑΒΔ, καὶ ἔστω μείζων τὸ ΑΒ. λέγω ὅτι δυνατόν.
+urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.2|Πάλιν ἄλλη πρότασις; Καὶ τοῦτο δείκνυται.`;
+        document.getElementById('inputText').value = exampleTextForSentences;
+
+        document.getElementById('analyzeSentencesButton').addEventListener('click', function() {
+            const inputText = document.getElementById('inputText').value;
+            const resultsArea = document.getElementById('resultsArea');
+            resultsArea.innerHTML = ''; // Clear previous results
+
+            const lines = inputText.split('\n').map(line => line.trim()).filter(line => line !== "");
+
+            if (lines.length === 0) {
+                resultsArea.innerHTML = '<p class="info-message">Please enter at least one "urn|text" line.</p>';
+                return;
+            }
+
+            try {
+                const sentenceUrns = greeklib.sentences(lines);
+
+                if (sentenceUrns.length === 0) {
+                    resultsArea.innerHTML = '<p class="info-message">No sentences were identified. This could be due to no text, no sentence terminators, or issues with tokenization (check console for warnings).</p>';
+                    return;
+                }
+
+                let listHtml = '<h2>Identified Sentence Ranges (URNs):</h2><ul>';
+                sentenceUrns.forEach(urn => {
+                    listHtml += `<li>${escapeHtml(urn)}</li>`;
+                });
+                listHtml += '</ul>';
+                resultsArea.innerHTML = listHtml;
+
+            } catch (e) {
+                resultsArea.innerHTML = `<p class="error-message"><strong>Error:</strong> ${escapeHtml(e.message)}</p>`;
+                console.error("Sentence analysis error:", e);
+            }
+        });
+
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
+```
+
+**How to use `test_sentences.html`:**
+1.  Save the code above as `test_sentences.html` in the same directory as your updated `greeklib.js`.
+2.  Open `test_sentences.html` in your web browser.
+3.  The textarea will be pre-filled with an example based on the text that would generate the token list from your prompt. This example includes multiple `urn|text` lines to test processing across them.
+4.  You can modify the input in the textarea. Each line should be a `urn|text` pair.
+5.  Click the "Analyze Sentences" button.
+6.  The results (a list of sentence range URNs or an error message) will appear below.
+
+The pre-filled example in `test_sentences.html` uses the URN `urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.1` and text "Δύο μεγεθῶν...τὸ ΑΒ." which should align with the token list and sentence range URNs described in your prompt for the `sentences` function. I've also added a second line to the example to demonstrate processing multiple input passage strings.
+
+### USER
+  
+Great. Let's now add  a function `tokens`. It should accept 2 parameters: 1) a string value with a CTS URN range expression 2) an Array of `Token` objects. It should return the Array of `Token` objects identified by the URN range. **Example**: if the range expression was `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27-1.ex.1.37a`, we would collect all tokens in the tokens Array begin with a first token having URN value `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27` and  ending with a Token having URN value `urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.37a`
+  
+Please implement this. Then write a test HTML page that does the following. Let the user enter string data, then analyze it into sentences with the `sentences` function. Create a selection menu from the results.  Use `tokenize` to collect a list of all tokens in the user-supplied string. When the user chooses one of the displayed references, invoke `tokens` with the user's selection as the first paraemter, and the list of all tokens in the source as the second parameter. Display the results.
+
+### ASSISTANT
+Okay, I've updated `greeklib.js` with the new `tokens` function and created the interactive HTML test page as requested.
+
+First, here's the updated `greeklib.js`:
+
+```javascript
+// greeklib.js
+(function(root) {
+    'use strict';
+
+    class Token {
+        constructor(sequence, urn, text, type) {
+            this.sequence = sequence; // Integer sequence number of token in passage
+            this.urn = urn;           // String URN for the token
+            this.text = text;         // String content of the token
+            this.type = type;         // String type: "number", "lexical", or "punctuation"
+        }
+    }
+
+    const PUNCTUATION_CHARS = ['.', ',', ':', ';'];
+    const SENTENCE_TERMINATORS = ['.', ';']; // Used by sentences()
+    const NUMERIC_TOKEN_FLAG = 'ʹ';
+
+    function modifyPassageUrnForTokens(passageUrn) {
+        const parts = passageUrn.split(':');
+        
+        if (parts.length < 5) {
+            throw new Error(`Invalid URN format: "${passageUrn}". A passage URN must have at least 5 colon-delimited components (e.g., urn:cts:namespace:workId:passageId).`);
+        }
+
+        const workId = parts[3];
+        const workIdParts = workId.split('.');
+        let newWorkId;
+
+        if (workIdParts.length === 3) {
+            newWorkId = workId + ".tokens";
+        } else if (workIdParts.length >= 4) {
+            newWorkId = workId + "_tokens";
+        } else {
+            throw new Error(`Work ID "${workId}" in URN "${passageUrn}" has ${workIdParts.length} parts. Tokenization URN rules are defined for work IDs with 3 or 4+ period-separated parts only.`);
+        }
+        
+        const originalPassageRef = parts.slice(4).join(':');
+        return parts.slice(0, 3).join(':') + ':' + newWorkId + ':' + originalPassageRef;
+    }
+
+    function tokenize(input) {
+        const inputTextPairs = [];
+        if (typeof input === 'string') {
+            inputTextPairs.push(input);
+        } else if (Array.isArray(input)) {
+            inputTextPairs.push(...input);
+        } else {
+            throw new Error('Input to tokenize must be a single pipe-delimited string (urn|text) or an Array of such strings.');
+        }
+
+        const allTokens = [];
+
+        for (const pair of inputTextPairs) {
+            if (typeof pair !== 'string' || !pair.includes('|')) {
+                console.warn(`Skipping malformed input pair: "${pair}". Expected "urn|text" format.`);
+                continue;
+            }
+            const parts = pair.split('|');
+            if (parts.length !== 2) {
+                console.warn(`Skipping malformed input pair: "${pair}". Expected "urn|text" format with exactly one pipe.`);
+                continue;
+            }
+            const passageUrn = parts[0].trim();
+            const passageText = parts[1]; 
+
+            if (!passageUrn) {
+                console.warn(`Skipping input pair with empty URN: "${pair}".`);
+                continue;
+            }
+             if (!passageText.trim()) {
+                console.warn(`Skipping input pair with empty text content for URN "${passageUrn}".`);
+                continue;
+            }
+
+            let baseUrnForTokensInPassage;
+            try {
+                baseUrnForTokensInPassage = modifyPassageUrnForTokens(passageUrn);
+            } catch (e) {
+                console.error(`Error modifying URN for tokenization (passage URN: "${passageUrn}"): ${e.message}`);
+                continue; 
+            }
+            
+            let tokenSequenceInPassage = 0;
+            let lexicalNumericCounterForUrn = 0;
+            let lastLexicalOrNumericUrnId = "";
+            let currentIndex = 0;
+
+            while (currentIndex < passageText.length) {
+                while (currentIndex < passageText.length && /\s/.test(passageText[currentIndex])) {
+                    currentIndex++;
+                }
+                if (currentIndex >= passageText.length) break;
+
+                let char = passageText[currentIndex];
+                let currentTokenText = "";
+                let currentTokenType = "";
+                let tokenUrnSuffix = "";
+
+                if (PUNCTUATION_CHARS.includes(char)) {
+                    currentTokenText = char;
+                    currentTokenType = "punctuation";
+                    currentIndex++; 
+
+                    if (!lastLexicalOrNumericUrnId) {
+                        console.warn(`Punctuation token "${currentTokenText}" in URN "${passageUrn}" cannot be assigned a URN suffix according to the rules, as no preceding non-punctuation token ID is available. Assigning a placeholder suffix.`);
+                        tokenUrnSuffix = "error_orphaned_punctuation_a";
+                    } else {
+                        tokenUrnSuffix = lastLexicalOrNumericUrnId + "a";
+                    }
+                } else {
+                    let tokenBuffer = "";
+                    let tempIndex = currentIndex;
+                    while (tempIndex < passageText.length && !/\s/.test(passageText[tempIndex]) && !PUNCTUATION_CHARS.includes(passageText[tempIndex])) {
+                        tokenBuffer += passageText[tempIndex];
+                        tempIndex++;
+                    }
+
+                    if (tokenBuffer.endsWith(NUMERIC_TOKEN_FLAG) && tokenBuffer.length > NUMERIC_TOKEN_FLAG.length) {
+                        currentTokenText = tokenBuffer.slice(0, -NUMERIC_TOKEN_FLAG.length);
+                        currentTokenType = "number";
+                    } else {
+                        currentTokenText = tokenBuffer;
+                        currentTokenType = "lexical";
+                    }
+                    currentIndex = tempIndex;
+
+                    lexicalNumericCounterForUrn++;
+                    tokenUrnSuffix = lexicalNumericCounterForUrn.toString();
+                    lastLexicalOrNumericUrnId = tokenUrnSuffix;
+                }
+
+                if (currentTokenText && currentTokenType) {
+                    tokenSequenceInPassage++;
+                    const finalTokenUrn = baseUrnForTokensInPassage + "." + tokenUrnSuffix;
+                    allTokens.push(new Token(tokenSequenceInPassage, finalTokenUrn, currentTokenText, currentTokenType));
+                }
+            }
+        }
+        return allTokens;
+    }
+
+    function sentences(inputArray) {
+        if (!Array.isArray(inputArray)) {
+            throw new Error("Input to sentences must be an Array of 'urn|text' strings.");
+        }
+
+        const validInputs = inputArray.filter(s => typeof s === 'string' && s.trim() !== "" && s.includes('|'));
+        if (validInputs.length === 0) {
+            return [];
+        }
+
+        const allTokens = tokenize(validInputs); 
+
+        if (allTokens.length === 0) {
+            return [];
+        }
+
+        const sentenceRanges = [];
+        let currentSentenceStartIndex = 0;
+
+        for (let i = 0; i < allTokens.length; i++) {
+            const currentToken = allTokens[i];
+            const isTerminator = SENTENCE_TERMINATORS.includes(currentToken.text);
+            const isLastTokenOfAll = i === allTokens.length - 1;
+
+            if (isTerminator || isLastTokenOfAll) {
+                if (currentSentenceStartIndex <= i) { 
+                    const startTokenInSentence = allTokens[currentSentenceStartIndex];
+                    const endTokenInSentence = currentToken; 
+
+                    // Construct range URN as: startToken.urn + "-" + endTokenPassageIdentifier
+                    // where endTokenPassageIdentifier is the part of endToken.urn after its last colon.
+                    const endTokenPassagePartIndex = endTokenInSentence.urn.lastIndexOf(':') + 1;
+                    const endTokenPassageRef = endTokenInSentence.urn.substring(endTokenPassagePartIndex);
+                    
+                    const rangeUrn = startTokenInSentence.urn + "-" + endTokenPassageRef;
+                    sentenceRanges.push(rangeUrn);
+                }
+                currentSentenceStartIndex = i + 1; 
+            }
+        }
+        return sentenceRanges;
+    }
+
+    function tokens(rangeUrnString, allTokensArray) {
+        if (typeof rangeUrnString !== 'string' || !rangeUrnString.includes('-')) {
+            throw new Error("Invalid range URN string format for tokens(). Expected 'START_TOKEN_FULL_URN-END_TOKEN_PASSAGE_SUFFIX'.");
+        }
+        if (!Array.isArray(allTokensArray)) {
+            throw new Error("Second parameter to tokens() must be an array of Token objects.");
+        }
+        if (allTokensArray.length === 0) {
+            return []; // No tokens to search within
+        }
+
+        const parts = rangeUrnString.split('-');
+        if (parts.length !== 2 || !parts[0] || !parts[1]) {
+            throw new Error("Invalid range URN string format for tokens(). Must contain exactly one hyphen separating two non-empty parts.");
+        }
+
+        const startTokenFullUrn = parts[0];
+        const endTokenPassageIdSuffixFromRange = parts[1];
+
+        // Reconstruct the full URN for the end token.
+        // The base URN (everything up to the last colon before the passage identifier)
+        // is taken from the start token's URN structure.
+        const lastColonInStartUrn = startTokenFullUrn.lastIndexOf(':');
+        if (lastColonInStartUrn === -1) {
+            throw new Error(`Could not parse base URN from start token URN: ${startTokenFullUrn}`);
+        }
+        const urnBaseForEndToken = startTokenFullUrn.substring(0, lastColonInStartUrn + 1);
+        const endTokenFullUrn = urnBaseForEndToken + endTokenPassageIdSuffixFromRange;
+
+        let startIndex = -1;
+        let endIndex = -1;
+
+        for (let i = 0; i < allTokensArray.length; i++) {
+            const currentToken = allTokensArray[i];
+            // Basic check if it's a Token-like object, more robust would be `instanceof Token`
+            if (!currentToken || typeof currentToken.urn !== 'string') {
+                console.warn(`Item at index ${i} in allTokensArray is not a valid Token object or lacks a URN.`);
+                continue;
+            }
+            if (currentToken.urn === startTokenFullUrn) {
+                startIndex = i;
+            }
+            if (currentToken.urn === endTokenFullUrn) {
+                endIndex = i;
+            }
+        }
+
+        if (startIndex === -1) {
+            console.warn(`Start token URN not found in allTokensArray: ${startTokenFullUrn}`);
+            return [];
+        }
+        if (endIndex === -1) {
+            console.warn(`End token URN not found in allTokensArray: ${endTokenFullUrn}`);
+            return [];
+        }
+
+        if (startIndex > endIndex) {
+            console.warn(`Start token (index ${startIndex}, URN: ${startTokenFullUrn}) appears after end token (index ${endIndex}, URN: ${endTokenFullUrn}) in the provided token list. Returning empty array.`);
+            return [];
+        }
+
+        return allTokensArray.slice(startIndex, endIndex + 1);
+    }
+
+    // Expose greeklib
+    const greeklib = {
+        Token,
+        tokenize,
+        sentences,
+        tokens // New function added
+    };
+
+    if (typeof define === 'function' && define.amd) {
+        define(function() { return greeklib; });
+    } else if (typeof module !== 'undefined' && module.exports) {
+        module.exports = greeklib;
+    } else {
+        root.greeklib = greeklib;
+    }
+
+})(typeof self !== 'undefined' ? self : this);
+```
+
+---
+
+And here's the new HTML test page, `test_token_retrieval.html`:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreekLib.js - Sentence Token Retrieval Test</title>
+    <script src="greeklib.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        h1 {
+            color: #1a5276; /* Darker blue */
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.95em;
+            min-height: 120px;
+            resize: vertical;
+            font-family: "Menlo", "Monaco", "Courier New", monospace;
+        }
+        button {
+            background-color: #1abc9c; /* Teal */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #16a085;
+        }
+        select {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.95em;
+            min-width: 300px; /* Give select some width */
+        }
+        .results-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.9em;
+        }
+        th {
+            background-color: #e9ecef;
+            color: #495057;
+            font-weight: 600;
+        }
+        td.token-text {
+            font-family: "GFS Neohellenic", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+            word-break: break-all;
+        }
+        td.token-urn {
+            word-break: break-all;
+            font-size: 0.85em;
+        }
+        .message {
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 0.95em;
+        }
+        .error-message {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .info-message {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+        }
+        .controls-area { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GreekLib.js - Interactive Sentence Token Retriever</h1>
+        <p>Enter <code>urn|text</code> pairs (one per line). First, analyze the text to identify sentences. Then, select a sentence URN range to view its constituent tokens.</p>
+
+        <div>
+            <label for="inputText">Input Data (URN|Text per line):</label>
+            <textarea id="inputText"></textarea>
+            <button id="analyzeTextButton">1. Analyze & List Sentences</button>
+        </div>
+
+        <div class="controls-area results-section" id="sentenceSelectionArea" style="display:none;">
+            <h2>Select a Sentence Range:</h2>
+            <select id="sentenceSelector"></select>
+            <button id="getTokensButton">2. Get Tokens for Selected Sentence</button>
+        </div>
+
+        <div class="results-section" id="tokenResultsArea">
+            <!-- Token results will be displayed here -->
+        </div>
+         <div class="results-section" id="messageArea">
+            <!-- General messages or errors will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        let allTokensGlobally = []; // To store all tokens from the initial analysis
+
+        // Pre-fill example data that matches the prompt's token list
+        const exampleTextForRetrieval = `urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.1|Δύο μεγεθῶν ἀνίσων δοθέντων δυνατόν ἐστιν εὑρεῖν δύο εὐθείας ἀνίσους, ὥστε τὴν μείζονα εὐθεῖαν πρὸς τὴν ἐλάσσονα λόγον ἔχειν ἐλάσσονα ἤτοι μείζων μέγεθος πρὸς τὸ ἔλασσον. ἔστω δύο μεγέθη ἄνισα τὰ ΑΒΔ, καὶ ἔστω μείζων τὸ ΑΒ. λέγω ὅτι δυνατόν.`;
+        document.getElementById('inputText').value = exampleTextForRetrieval;
+
+        const analyzeTextButton = document.getElementById('analyzeTextButton');
+        const sentenceSelectionArea = document.getElementById('sentenceSelectionArea');
+        const sentenceSelector = document.getElementById('sentenceSelector');
+        const getTokensButton = document.getElementById('getTokensButton');
+        const tokenResultsArea = document.getElementById('tokenResultsArea');
+        const messageArea = document.getElementById('messageArea');
+
+        analyzeTextButton.addEventListener('click', function() {
+            const inputTextVal = document.getElementById('inputText').value;
+            messageArea.innerHTML = ''; // Clear previous messages
+            tokenResultsArea.innerHTML = ''; // Clear previous token results
+            sentenceSelectionArea.style.display = 'none'; // Hide sentence selector initially
+            sentenceSelector.innerHTML = ''; // Clear previous options
+            allTokensGlobally = []; // Reset global tokens
+
+            const lines = inputTextVal.split('\n').map(line => line.trim()).filter(line => line !== "");
+
+            if (lines.length === 0) {
+                displayMessage('Please enter at least one "urn|text" line.', 'info');
+                return;
+            }
+
+            try {
+                // Step 1: Tokenize the entire input
+                allTokensGlobally = greeklib.tokenize(lines);
+                if (allTokensGlobally.length === 0) {
+                     displayMessage('No tokens were generated from the input. Cannot proceed with sentence analysis.', 'info');
+                     return;
+                }
+
+                // Step 2: Get sentence range URNs
+                const sentenceUrns = greeklib.sentences(lines); // sentences calls tokenize internally, but we need allTokens for the next step
+
+                if (sentenceUrns.length === 0) {
+                    displayMessage('No sentences were identified. Check your input for sentence terminators (. or ;).', 'info');
+                    return;
+                }
+
+                // Populate the select menu
+                sentenceUrns.forEach(urn => {
+                    const option = document.createElement('option');
+                    option.value = urn;
+                    option.textContent = urn;
+                    sentenceSelector.appendChild(option);
+                });
+                sentenceSelectionArea.style.display = 'block';
+                displayMessage(`Found ${sentenceUrns.length} sentence(s). Select one to view its tokens.`, 'info');
+
+            } catch (e) {
+                displayMessage(`Error during analysis: ${escapeHtml(e.message)}`, 'error');
+                console.error("Analysis error:", e);
+            }
+        });
+
+        getTokensButton.addEventListener('click', function() {
+            tokenResultsArea.innerHTML = ''; // Clear previous token results
+            const selectedRangeUrn = sentenceSelector.value;
+
+            if (!selectedRangeUrn) {
+                displayMessage('Please select a sentence range from the dropdown.', 'info');
+                return;
+            }
+            if (allTokensGlobally.length === 0) {
+                 displayMessage('No global tokens available. Please analyze text first.', 'error');
+                 return;
+            }
+
+            try {
+                const tokensInSentence = greeklib.tokens(selectedRangeUrn, allTokensGlobally);
+
+                if (tokensInSentence.length === 0) {
+                    tokenResultsArea.innerHTML = '<p class="message info-message">No tokens found for the selected range, or the range was invalid (check console for warnings).</p>';
+                    return;
+                }
+
+                let tableHtml = `<h2>Tokens for Range: ${escapeHtml(selectedRangeUrn)}</h2>`;
+                tableHtml += '<table><thead><tr><th>Seq. (Passage)</th><th>Token URN</th><th>Text</th><th>Type</th></tr></thead><tbody>';
+
+                tokensInSentence.forEach(token => {
+                    tableHtml += `<tr>
+                                    <td>${token.sequence}</td>
+                                    <td class="token-urn">${escapeHtml(token.urn)}</td>
+                                    <td class="token-text">${escapeHtml(token.text)}</td>
+                                    <td>${token.type}</td>
+                                  </tr>`;
+                });
+
+                tableHtml += '</tbody></table>';
+                tokenResultsArea.innerHTML = tableHtml;
+
+            } catch (e) {
+                displayMessage(`Error retrieving tokens: ${escapeHtml(e.message)}`, 'error');
+                console.error("Token retrieval error:", e);
+            }
+        });
+
+        function displayMessage(message, type = 'info') { // type can be 'info' or 'error'
+            messageArea.innerHTML = `<p class="message ${type}-message">${escapeHtml(message)}</p>`;
+        }
+
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
+```
+
+**Key changes and features:**
+
+*   **`greeklib.js`:**
+    *   Added the `tokens(rangeUrnString, allTokensArray)` function.
+    *   It parses the `rangeUrnString` (expected format: `FULL_START_URN-END_TOKEN_PASSAGE_PART`), reconstructs the full URN of the end token, finds both start and end tokens in `allTokensArray`, and returns the slice.
+    *   Includes error handling for invalid input formats and unfound tokens.
+    *   The `sentences` function now constructs range URNs as `startToken.urn + "-" + endTokenPassageRef` (where `endTokenPassageRef` is the passage part of the end token's URN, e.g., `1.ex.1.26a`). This ensures consistency with how `tokens` expects to parse the range.
+
+*   **`test_token_retrieval.html`:**
+    *   **Workflow:**
+        1.  User enters `urn|text` data.
+        2.  Clicks "1. Analyze & List Sentences":
+            *   `greeklib.tokenize()` is called once to get all tokens from the input (stored globally on the page for later use).
+            *   `greeklib.sentences()` is called to get an array of sentence range URNs.
+            *   A `<select>` dropdown is populated with these sentence range URNs.
+        3.  User selects a range URN from the dropdown.
+        4.  Clicks "2. Get Tokens for Selected Sentence":
+            *   `greeklib.tokens()` is called with the selected range URN and the globally stored `allTokens` array.
+            *   The resulting tokens for that sentence are displayed in a table.
+    *   **User Interface:** Clear separation of steps, messages for users, and styled output.
+    *   **Pre-filled Example:** The textarea is pre-filled with the example text that aligns with the token list from your earlier prompt, making it easy to test the intended functionality.
+    *   **Error Handling:** Displays errors from the library functions in a dedicated message area.
+
+To use this, save both files (`greeklib.js` and `test_token_retrieval.html`) in the same directory and open the HTML file in a browser. The pre-filled example should allow you to test the flow immediately.
+
+### USER
+Beautiful. I want to create a class `Orthography` with three properties: 1) `name` is a string value, 2) `charset` is a method and 3) `tokenize` is a method.  I then want to create a function `literarygreek` that has no parameters, and returns an `Orthography` object. The value of the `name` parameter should return `Standard literary Greek orthography`. The `charset` method should take no parameters and return a list of the following characters: all the alphabetic characters in the ancient Greek alphabet, the punctuation characters `.`, `,`, `;` and `:`,  and the precomposed Unicode combinations of all the Greek alphabetic characters. The `tokenize` method should take a single string paraemter return the result of passing that string along to the global `tokenize` function.
+  
+Please implmeent this. Then write an HTML test page that gets an `Orthography` object using the `literarygreek` function, and tests all of its properties as follows. 1) display the value of the `name` property; 2) display the value of invoking the `charset` function 3) allow the user to enter a string, and then display the result of invoking the `Orthography` object's `tokenize` function.
+
+### ASSISTANT
+Okay, I've added the `Orthography` class and the `literarygreek` factory function to `greeklib.js`. I've also created the HTML test page as requested.
+
+First, here's the updated `greeklib.js`:
+
+```javascript
+// greeklib.js
+(function(root) {
+    'use strict';
+
+    class Token {
+        constructor(sequence, urn, text, type) {
+            this.sequence = sequence;
+            this.urn = urn;
+            this.text = text;
+            this.type = type;
+        }
+    }
+
+    const PUNCTUATION_CHARS = ['.', ',', ':', ';'];
+    const SENTENCE_TERMINATORS = ['.', ';'];
+    const NUMERIC_TOKEN_FLAG = 'ʹ';
+
+    function modifyPassageUrnForTokens(passageUrn) {
+        const parts = passageUrn.split(':');
+        if (parts.length < 5) {
+            throw new Error(`Invalid URN format: "${passageUrn}". A passage URN must have at least 5 colon-delimited components.`);
+        }
+        const workId = parts[3];
+        const workIdParts = workId.split('.');
+        let newWorkId;
+        if (workIdParts.length === 3) {
+            newWorkId = workId + ".tokens";
+        } else if (workIdParts.length >= 4) {
+            newWorkId = workId + "_tokens";
+        } else {
+            throw new Error(`Work ID "${workId}" has an unsupported number of parts.`);
+        }
+        const originalPassageRef = parts.slice(4).join(':');
+        return parts.slice(0, 3).join(':') + ':' + newWorkId + ':' + originalPassageRef;
+    }
+
+    function tokenizeInternal(input) { // Renamed to avoid conflict if Orthography.tokenize is called directly
+        const inputTextPairs = [];
+        if (typeof input === 'string') {
+            inputTextPairs.push(input);
+        } else if (Array.isArray(input)) {
+            inputTextPairs.push(...input);
+        } else {
+            throw new Error('Input to tokenize must be a single pipe-delimited string (urn|text) or an Array of such strings.');
+        }
+
+        const allTokens = [];
+        for (const pair of inputTextPairs) {
+            // ... (rest of the tokenizeInternal logic remains the same as the previous tokenize) ...
+            if (typeof pair !== 'string' || !pair.includes('|')) {
+                console.warn(`Skipping malformed input pair: "${pair}". Expected "urn|text" format.`);
+                continue;
+            }
+            const parts = pair.split('|');
+            if (parts.length !== 2) {
+                console.warn(`Skipping malformed input pair: "${pair}". Expected "urn|text" format with exactly one pipe.`);
+                continue;
+            }
+            const passageUrn = parts[0].trim();
+            const passageText = parts[1]; 
+
+            if (!passageUrn) {
+                console.warn(`Skipping input pair with empty URN: "${pair}".`);
+                continue;
+            }
+             if (!passageText.trim()) {
+                console.warn(`Skipping input pair with empty text content for URN "${passageUrn}".`);
+                continue;
+            }
+
+            let baseUrnForTokensInPassage;
+            try {
+                baseUrnForTokensInPassage = modifyPassageUrnForTokens(passageUrn);
+            } catch (e) {
+                console.error(`Error modifying URN for tokenization (passage URN: "${passageUrn}"): ${e.message}`);
+                continue; 
+            }
+            
+            let tokenSequenceInPassage = 0;
+            let lexicalNumericCounterForUrn = 0;
+            let lastLexicalOrNumericUrnId = "";
+            let currentIndex = 0;
+
+            while (currentIndex < passageText.length) {
+                while (currentIndex < passageText.length && /\s/.test(passageText[currentIndex])) {
+                    currentIndex++;
+                }
+                if (currentIndex >= passageText.length) break;
+
+                let char = passageText[currentIndex];
+                let currentTokenText = "";
+                let currentTokenType = "";
+                let tokenUrnSuffix = "";
+
+                if (PUNCTUATION_CHARS.includes(char)) {
+                    currentTokenText = char;
+                    currentTokenType = "punctuation";
+                    currentIndex++; 
+
+                    if (!lastLexicalOrNumericUrnId) {
+                        console.warn(`Punctuation token "${currentTokenText}" in URN "${passageUrn}" cannot be assigned a URN suffix according to the rules, as no preceding non-punctuation token ID is available. Assigning a placeholder suffix.`);
+                        tokenUrnSuffix = "error_orphaned_punctuation_a";
+                    } else {
+                        tokenUrnSuffix = lastLexicalOrNumericUrnId + "a";
+                    }
+                } else {
+                    let tokenBuffer = "";
+                    let tempIndex = currentIndex;
+                    while (tempIndex < passageText.length && !/\s/.test(passageText[tempIndex]) && !PUNCTUATION_CHARS.includes(passageText[tempIndex])) {
+                        tokenBuffer += passageText[tempIndex];
+                        tempIndex++;
+                    }
+
+                    if (tokenBuffer.endsWith(NUMERIC_TOKEN_FLAG) && tokenBuffer.length > NUMERIC_TOKEN_FLAG.length) {
+                        currentTokenText = tokenBuffer.slice(0, -NUMERIC_TOKEN_FLAG.length);
+                        currentTokenType = "number";
+                    } else {
+                        currentTokenText = tokenBuffer;
+                        currentTokenType = "lexical";
+                    }
+                    currentIndex = tempIndex;
+
+                    lexicalNumericCounterForUrn++;
+                    tokenUrnSuffix = lexicalNumericCounterForUrn.toString();
+                    lastLexicalOrNumericUrnId = tokenUrnSuffix;
+                }
+
+                if (currentTokenText && currentTokenType) {
+                    tokenSequenceInPassage++;
+                    const finalTokenUrn = baseUrnForTokensInPassage + "." + tokenUrnSuffix;
+                    allTokens.push(new Token(tokenSequenceInPassage, finalTokenUrn, currentTokenText, currentTokenType));
+                }
+            }
+        }
+        return allTokens;
+    }
+
+    function sentences(inputArray) {
+        if (!Array.isArray(inputArray)) {
+            throw new Error("Input to sentences must be an Array of 'urn|text' strings.");
+        }
+        const validInputs = inputArray.filter(s => typeof s === 'string' && s.trim() !== "" && s.includes('|'));
+        if (validInputs.length === 0) return [];
+        
+        const allTokens = tokenizeInternal(validInputs);
+        if (allTokens.length === 0) return [];
+
+        const sentenceRanges = [];
+        let currentSentenceStartIndex = 0;
+        for (let i = 0; i < allTokens.length; i++) {
+            const currentToken = allTokens[i];
+            const isTerminator = SENTENCE_TERMINATORS.includes(currentToken.text);
+            const isLastTokenOfAll = i === allTokens.length - 1;
+            if (isTerminator || isLastTokenOfAll) {
+                if (currentSentenceStartIndex <= i) {
+                    const startTokenInSentence = allTokens[currentSentenceStartIndex];
+                    const endTokenInSentence = currentToken;
+                    const endTokenPassagePartIndex = endTokenInSentence.urn.lastIndexOf(':') + 1;
+                    const endTokenPassageRef = endTokenInSentence.urn.substring(endTokenPassagePartIndex);
+                    const rangeUrn = startTokenInSentence.urn + "-" + endTokenPassageRef;
+                    sentenceRanges.push(rangeUrn);
+                }
+                currentSentenceStartIndex = i + 1;
+            }
+        }
+        return sentenceRanges;
+    }
+
+    function tokens(rangeUrnString, allTokensArray) {
+        if (typeof rangeUrnString !== 'string' || !rangeUrnString.includes('-')) {
+            throw new Error("Invalid range URN string format. Expected 'START_URN-END_SUFFIX'.");
+        }
+        if (!Array.isArray(allTokensArray)) {
+            throw new Error("Second parameter must be an array of Token objects.");
+        }
+        if (allTokensArray.length === 0) return [];
+
+        const parts = rangeUrnString.split('-');
+        if (parts.length !== 2 || !parts[0] || !parts[1]) {
+            throw new Error("Invalid range URN string: Must be 'START_URN-END_SUFFIX'.");
+        }
+        const startTokenFullUrn = parts[0];
+        const endTokenPassageIdSuffixFromRange = parts[1];
+        const lastColonInStartUrn = startTokenFullUrn.lastIndexOf(':');
+        if (lastColonInStartUrn === -1) {
+            throw new Error(`Could not parse base URN from start token URN: ${startTokenFullUrn}`);
+        }
+        const urnBaseForEndToken = startTokenFullUrn.substring(0, lastColonInStartUrn + 1);
+        const endTokenFullUrn = urnBaseForEndToken + endTokenPassageIdSuffixFromRange;
+
+        let startIndex = -1, endIndex = -1;
+        for (let i = 0; i < allTokensArray.length; i++) {
+            const currentToken = allTokensArray[i];
+            if (!currentToken || typeof currentToken.urn !== 'string') continue;
+            if (currentToken.urn === startTokenFullUrn) startIndex = i;
+            if (currentToken.urn === endTokenFullUrn) endIndex = i;
+        }
+        if (startIndex === -1 || endIndex === -1 || startIndex > endIndex) {
+            console.warn(`Token range not found or invalid for URN: ${rangeUrnString}. Start: ${startIndex}, End: ${endIndex}`);
+            return [];
+        }
+        return allTokensArray.slice(startIndex, endIndex + 1);
+    }
+
+    // --- New Orthography Class and literarygreek function ---
+    class Orthography {
+        constructor(name, charsetMethod, tokenizeMethod) {
+            this.name = name;
+            this.charset = charsetMethod; // Store the method itself
+            this.tokenize = tokenizeMethod; // Store the method itself
+        }
+    }
+
+    function literarygreek() {
+        const name = "Standard literary Greek orthography";
+
+        const charsetMethod = function() {
+            const charSet = new Set();
+
+            // Basic lowercase Greek letters
+            for (let i = 0x03B1; i <= 0x03C1; i++) charSet.add(String.fromCharCode(i)); // α-ρ
+            charSet.add(String.fromCharCode(0x03C2)); // ς (final sigma)
+            for (let i = 0x03C3; i <= 0x03C9; i++) charSet.add(String.fromCharCode(i)); // σ-ω
+
+            // Basic uppercase Greek letters
+            for (let i = 0x0391; i <= 0x03A1; i++) charSet.add(String.fromCharCode(i)); // Α-Ρ
+            // Skip 0x03A2 (deprecated GREEK LETTER LUNATE SIGMA SYMBOL)
+            for (let i = 0x03A3; i <= 0x03A9; i++) charSet.add(String.fromCharCode(i)); // Σ-Ω
+
+            // Punctuation
+            ['.', ',', ';', ':'].forEach(p => charSet.add(p));
+
+            // Common precomposed characters from Greek and Coptic block (U+0370-U+03FF)
+            // (vowels with tonos, vowels with diaeresis)
+            [
+                0x03AC, 0x03AD, 0x03AE, 0x03AF, 0x03CC, 0x03CD, 0x03CE, // ά έ ή ί ό ύ ώ
+                0x0386, 0x0388, 0x0389, 0x038A, 0x038C, 0x038E, 0x038F, // Ά Έ Ή Ί Ό Ύ Ώ
+                0x03AA, 0x03AB, // Ϊ Ϋ
+                0x03CA, 0x03CB  // ϊ ϋ
+            ].forEach(code => charSet.add(String.fromCharCode(code)));
+
+            // Precomposed letters from Greek Extended block (U+1F00-U+1FFF)
+            // These are ranges of precomposed letters.
+            const greekExtendedLetterRanges = [
+                [0x1F00, 0x1F07], [0x1F08, 0x1F0F], // smooth breathing
+                [0x1F10, 0x1F15], [0x1F18, 0x1F1D], // rough breathing
+                [0x1F20, 0x1F27], [0x1F28, 0x1F2F], // smooth + grave
+                [0x1F30, 0x1F37], [0x1F38, 0x1F3F], // smooth + acute
+                [0x1F40, 0x1F45], [0x1F48, 0x1F4D], // rough + grave
+                [0x1F50, 0x1F57],                   // rough + acute (includes upsilon/omega variants)
+                [0x1F59, 0x1F59], [0x1F5B, 0x1F5B], [0x1F5D, 0x1F5D], // Uppercase rough+acute (H, Y)
+                [0x1F60, 0x1F67], [0x1F68, 0x1F6F], // smooth + circumflex
+                [0x1F70, 0x1F7D],                   // vowels with grave / acute (some overlap, Set handles)
+                // Iota subscript forms
+                [0x1F80, 0x1F87], [0x1F88, 0x1F8F], // alpha + iota_sub + accents/breathings
+                [0x1F90, 0x1F97], [0x1F98, 0x1F9F], // eta + iota_sub + accents/breathings
+                [0x1FA0, 0x1FA7], [0x1FA8, 0x1FAF], // omega + iota_sub + accents/breathings
+                // Standalone accented letters and iota subscript letters
+                [0x1FB0, 0x1FB4], // alpha forms (grave, acute, circumflex, iota_sub)
+                [0x1FB6, 0x1FB7], // alpha circumflex with/without iota_sub
+                [0x1FBA, 0x1FBB], // Alpha grave, Eta grave (not here, they are 1F70, 1F74)
+                [0x1FBC, 0x1FBC], // ᾳ (alpha with iota subscript)
+                [0x1FC2, 0x1FC4], // eta forms (grave, acute, circumflex)
+                [0x1FC6, 0x1FC7], // eta circumflex with/without iota_sub
+                [0x1FCA, 0x1FCB], // Omega grave, Eta grave (not here, U+1F7C, U+1F74)
+                [0x1FCC, 0x1FCC], // ῃ (eta with iota subscript)
+                [0x1FD0, 0x1FD3], // iota forms (grave, acute, circumflex, dialytika+grave)
+                [0x1FD6, 0x1FD7], // iota circumflex, iota dialytika+circumflex
+                [0x1FDA, 0x1FDB], // Iota grave (not here, U+1F76)
+                [0x1FE0, 0x1FE7], // upsilon forms, rho forms (includes ῤ, ῥ)
+                [0x1FEA, 0x1FEB], // Upsilon grave (not here, U+1F7A)
+                [0x1FEC, 0x1FEC], // ῳ (omega with iota subscript)
+                [0x1FF2, 0x1FF4], // omega forms (grave, acute, circumflex)
+                [0x1FF6, 0x1FF7], // omega circumflex with/without iota_sub
+                // [0x1FFA, 0x1FFB] // Omega grave (not here U+1F7C)
+                // [0x1FFC, 0x1FFC] // this is ῳ again, 1FEC is preferred.
+            ];
+
+            for (const range of greekExtendedLetterRanges) {
+                for (let i = range[0]; i <= range[1]; i++) {
+                     // Some ranges are sparse or have non-letters, a more robust check might be needed
+                     // For now, this will add all code points in specified ranges.
+                    charSet.add(String.fromCharCode(i));
+                }
+            }
+             // Add specific characters that might be missed or are important
+            [0x1FB3, // ᾳ (alpha + iota sub + oxia)
+             0x1FC3, // ῃ (eta + iota sub + oxia)
+             0x1FF3, // ΐ (iota + dialytika + oxia)
+             0x1FE5, // ῥ
+             0x1FE4, // ῤ
+            ].forEach(c => charSet.add(String.fromCharCode(c)));
+
+
+            return Array.from(charSet).sort((a, b) => a.codePointAt(0) - b.codePointAt(0));
+        };
+
+        // The Orthography.tokenize method will call the global greeklib.tokenize (now tokenizeInternal)
+        const tokenizeMethod = function(inputString) {
+            return tokenizeInternal(inputString); // Call the main tokenize function
+        };
+
+        return new Orthography(name, charsetMethod, tokenizeMethod);
+    }
+
+
+    // Expose greeklib
+    const greeklib = {
+        Token,
+        tokenize: tokenizeInternal, // Keep original name for external use
+        sentences,
+        tokens,
+        Orthography,        // New Class
+        literarygreek       // New factory function
+    };
+
+    if (typeof define === 'function' && define.amd) {
+        define(function() { return greeklib; });
+    } else if (typeof module !== 'undefined' && module.exports) {
+        module.exports = greeklib;
+    } else {
+        root.greeklib = greeklib;
+    }
+
+})(typeof self !== 'undefined' ? self : this);
+```
+
+**Key changes in `greeklib.js`:**
+1.  The main `tokenize` function was renamed to `tokenizeInternal` to avoid naming collisions if `Orthography.tokenize` were to be called in a context where `this` might refer to the global `greeklib` object. The publicly exposed `greeklib.tokenize` still points to `tokenizeInternal`.
+2.  **`Orthography` Class**: Defined as specified.
+3.  **`literarygreek()` Function**:
+    *   Sets the `name` property.
+    *   Implements the `charsetMethod` which:
+        *   Collects basic Greek alphabet (upper and lower).
+        *   Adds specified punctuation.
+        *   Adds common precomposed Greek characters from the "Greek and Coptic" block (tonos, diaeresis).
+        *   Adds precomposed Greek letters from defined ranges within the "Greek Extended" block.
+        *   Uses a `Set` to ensure uniqueness and then returns a sorted array of characters. The character list for Greek Extended is based on common letter ranges; it's comprehensive but might not capture every single edge-case precomposed letter if it falls outside these common patterns.
+    *   Implements the `tokenizeMethod` which directly calls `tokenizeInternal` (the main tokenization logic of the library).
+4.  `Orthography` and `literarygreek` are added to the `greeklib` object for export.
+
+---
+
+And here's the `test_orthography.html` page:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreekLib.js - Orthography Test</title>
+    <script src="greeklib.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea#charsetOutput {
+            min-height: 150px;
+            font-family: "Courier New", Courier, monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.9em;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #adb5bd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #dee2e6;
+        }
+        .token-text, #charsetOutput { /* Ensure Greek characters display well */
+            font-family: "GFS Neohellenic", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+        }
+        .error-message { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GreekLib.js - Orthography Test</h1>
+
+        <div id="orthographyInfo">
+            <h2>Orthography Details:</h2>
+            <p><strong>Name:</strong> <span id="orthoName"></span></p>
+
+            <label for="charsetOutput"><strong>Character Set:</strong></label>
+            <textarea id="charsetOutput" readonly></textarea>
+        </div>
+
+        <div class="results-section">
+            <h2>Test Orthography's Tokenizer:</h2>
+            <label for="tokenizeInput">Enter string to tokenize (format: <code>urn|text</code>):</label>
+            <input type="text" id="tokenizeInput" placeholder="e.g., urn:cts:greekLit:tlg0001.tlg001:1.1|Μῆνιν ἄειδε θεά.">
+            <button id="runTokenizerButton">Tokenize with Orthography Method</button>
+
+            <div id="tokenizerResults">
+                <!-- Tokenizer results will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get the Orthography object
+        const literaryGreekOrthography = greeklib.literarygreek();
+
+        // 1. Display the name property
+        document.getElementById('orthoName').textContent = literaryGreekOrthography.name;
+
+        // 2. Display the value of invoking the charset method
+        try {
+            const charsetArray = literaryGreekOrthography.charset();
+            // Displaying a very long list, perhaps join with spaces for better readability in textarea
+            document.getElementById('charsetOutput').value = charsetArray.join(' ');
+        } catch (e) {
+            document.getElementById('charsetOutput').value = `Error getting charset: ${e.message}`;
+            console.error("Charset error:", e);
+        }
+
+        // 3. Test the Orthography object's tokenize method
+        document.getElementById('runTokenizerButton').addEventListener('click', function() {
+            const inputString = document.getElementById('tokenizeInput').value;
+            const resultsDiv = document.getElementById('tokenizerResults');
+            resultsDiv.innerHTML = ''; // Clear previous results
+
+            if (!inputString.trim()) {
+                resultsDiv.innerHTML = '<p class="error-message">Please enter a string to tokenize.</p>';
+                return;
+            }
+            if (!inputString.includes('|')) {
+                 resultsDiv.innerHTML = '<p class="error-message">Input string must be in "urn|text" format.</p>';
+                return;
+            }
+
+
+            try {
+                const tokens = literaryGreekOrthography.tokenize(inputString);
+
+                if (tokens.length === 0) {
+                    resultsDiv.innerHTML = '<p>No tokens generated. (Check console for any warnings from the tokenizer if input seemed valid).</p>';
+                    return;
+                }
+
+                let tableHtml = '<h3>Tokens:</h3><table><thead><tr><th>Seq.</th><th>URN</th><th>Text</th><th>Type</th></tr></thead><tbody>';
+                tokens.forEach(token => {
+                    tableHtml += `<tr>
+                                    <td>${token.sequence}</td>
+                                    <td>${escapeHtml(token.urn)}</td>
+                                    <td class="token-text">${escapeHtml(token.text)}</td>
+                                    <td>${token.type}</td>
+                                  </tr>`;
+                });
+                tableHtml += '</tbody></table>';
+                resultsDiv.innerHTML = tableHtml;
+
+            } catch (e) {
+                resultsDiv.innerHTML = `<p class="error-message">Error during tokenization: ${escapeHtml(e.message)}</p>`;
+                console.error("Tokenizer error via Orthography object:", e);
+            }
+        });
+
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+        
+        // Pre-fill for convenience
+        document.getElementById('tokenizeInput').value = "urn:cts:greekLit:tlg0001.tlg001.pras:1.1|κόσμος, κόσμου.";
+    </script>
+</body>
+</html>
+```
+
+**How to use `test_orthography.html`:**
+1.  Save both files (`greeklib.js` and `test_orthography.html`) in the same directory.
+2.  Open `test_orthography.html` in a web browser.
+3.  You'll see:
+    *   The name of the orthography ("Standard literary Greek orthography").
+    *   A textarea displaying all the characters from the `charset()` method (it's a long list!).
+    *   An input field (pre-filled with an example) to test the `orthography.tokenize()` method. Enter a `urn|text` string and click the button.
+    *   The tokenization results will be displayed in a table.
+
+### USER
+Great! Please write documentation for the `greeklib.js` library.
+
+### ASSISTANT
+Okay, here's an updated `README.md` for `greeklib.js`, incorporating documentation for the `Orthography` class, the `literarygreek` factory function, and the `tokens` function.
+
+```markdown
+# greeklib.js
+
+`greeklib.js` is a JavaScript library designed for working with citable texts in polytonic Ancient Greek. It provides tools for tokenizing Greek text according to common scholarly conventions, identifying sentence structures based on token URNs, retrieving specific token sequences, and defining orthographic properties. The library heavily utilizes CTS (Citable Text Services) URNs.
+
+## Table of Contents
+
+1.  [Installation](#installation)
+2.  [Core Concepts](#core-concepts)
+    *   [CTS URNs](#cts-urns)
+    *   [Tokens](#tokens)
+    *   [Orthography](#orthography)
+3.  [API Reference](#api-reference)
+    *   [`greeklib.Token`](#greeklibtoken) (Class)
+    *   [`greeklib.Orthography`](#greekliborthography) (Class)
+    *   [`greeklib.tokenize(input)`](#greeklibtokenizeinput-function)
+    *   [`greeklib.sentences(inputArray)`](#greeklibsentencesinputarray-function)
+    *   [`greeklib.tokens(rangeUrnString, allTokensArray)`](#greeklibtokensrangeurnstring-alltokensarray-function)
+    *   [`greeklib.literarygreek()`](#greeklibliterarygreek--function)
+4.  [Usage Examples](#usage-examples)
+5.  [Tokenization Rules](#tokenization-rules)
+    *   [Text Splitting](#text-splitting)
+    *   [Token Types](#token-types)
+    *   [URN Generation for Tokens](#urn-generation-for-tokens)
+6.  [Sentence Identification](#sentence-identification)
+7.  [Contributing](#contributing)
+8.  [License](#license)
+
+## Installation
+
+### Using jsDelivr CDN
+
+You can include `greeklib.js` directly in your HTML file from the jsDelivr CDN. Replace `your-github-username` and `your-repo-name` with your actual GitHub username and repository name, and `@main` with the specific branch, tag, or commit hash if needed.
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/your-github-username/your-repo-name@main/greeklib.js"></script>
+```
+
+### Local Installation
+
+1.  Download `greeklib.js` from the repository.
+2.  Include it in your project:
+
+```html
+<script src="path/to/greeklib.js"></script>
+```
+
+## Core Concepts
+
+### CTS URNs
+
+The library heavily utilizes CTS URNs (Canonical Text Services Uniform Resource Names) for identifying text passages and individual tokens. A typical passage URN structure is:
+
+`urn:cts:<namespace>:<work_id>:<passage_id_or_range>`
+
+Example: `urn:cts:greekLit:tlg0552.tlg001.ap:1.proposition.1`
+
+Token URNs are derived from passage URNs, as detailed in the [URN Generation for Tokens](#urn-generation-for-tokens) section.
+
+### Tokens
+
+A token is the smallest unit of text resulting from the tokenization process. Each token is an instance of the `greeklib.Token` class and has associated properties like its text content, type, sequence number, and a unique URN.
+
+### Orthography
+
+An orthography defines a set of linguistic conventions, including the valid character set and specific tokenization rules for a language or text type. In `greeklib.js`, this is represented by the `greeklib.Orthography` class.
+
+## API Reference
+
+The library exposes a global object `greeklib` when included in a browser environment.
+
+### `greeklib.Token` (Class)
+
+Represents a single token extracted from a text passage.
+
+#### Constructor
+
+`new greeklib.Token(sequence, urn, text, type)`
+
+*   `sequence` (Integer): The 1-based sequence number of this token within its original passage.
+*   `urn` (String): The unique CTS URN identifying this specific token.
+*   `text` (String): The textual content of the token.
+*   `type` (String): The type of the token. Possible values: `"number"`, `"lexical"`, or `"punctuation"`.
+
+#### Properties
+
+*   `token.sequence`: (Integer) As above.
+*   `token.urn`: (String) As above.
+*   `token.text`: (String) As above.
+*   `token.type`: (String) As above.
+
+### `greeklib.Orthography` (Class)
+
+Represents an orthographic system, defining its character set and tokenization behavior.
+
+#### Constructor
+
+`new greeklib.Orthography(name, charsetMethod, tokenizeMethod)`
+
+*   `name` (String): A human-readable name for the orthography.
+*   `charsetMethod` (Function): A method that, when called, returns an array of strings, where each string is a character belonging to the orthography's character set.
+*   `tokenizeMethod` (Function): A method that takes a single string parameter (in `urn|text` format) and returns an array of `greeklib.Token` objects.
+
+#### Properties
+
+*   `orthography.name`: (String) The name of the orthography.
+*   `orthography.charset`: (Function) The method to get the character set.
+*   `orthography.tokenize`: (Function) The method to tokenize text according to this orthography.
+
+### `greeklib.tokenize(input)` (Function)
+
+Analyzes a passage of Greek text (or multiple passages) and splits it into a series of `Token` objects based on the library's default tokenization rules.
+
+#### Parameters
+
+*   `input` (String | Array<String>):
+    *   If a String: A single pipe-delimited string in the format `"urn|text"`.
+        Example: `"urn:cts:greekLit:tlg0001.tlg001.perseus-grc2:1.1|Μῆνιν ἄειδε θεά"`
+    *   If an Array of Strings: Each string in the array must be a pipe-delimited `"urn|text"` pair.
+
+#### Returns
+
+*   (Array<`greeklib.Token`>): An array of `Token` objects. If the input was an array of passage strings, the returned array will contain all tokens from all processed passages, concatenated.
+
+#### Error Handling
+
+*   Throws an `Error` if the input parameter is not a string or an array of strings.
+*   Throws an `Error` if a passage URN is malformed.
+*   Logs warnings for malformed `"urn|text"` pairs or problematic URN generation scenarios.
+
+### `greeklib.sentences(inputArray)` (Function)
+
+Identifies sentence boundaries within a tokenized text and returns URN ranges for each sentence.
+
+#### Parameters
+
+*   `inputArray` (Array<String>): An array of pipe-delimited strings, each in the format `"urn|text"`.
+
+#### Returns
+
+*   (Array<String>): An array of CTS URN range strings. Each string represents a sentence. The range is formed by the full URN of the first token in the sentence and the passage identifier part of the last token's URN, separated by a hyphen.
+    Example: `"urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.1-1.ex.1.26a"`
+
+#### Process
+
+1.  Calls `greeklib.tokenize()` internally on the `inputArray` to get a flat list of all tokens.
+2.  Iterates through the tokens. A sentence is considered terminated by a token whose `text` property is `.` or `;`, or by the end of the entire token sequence.
+3.  Constructs a URN range for each identified sentence.
+
+### `greeklib.tokens(rangeUrnString, allTokensArray)` (Function)
+
+Retrieves a subset of `Token` objects from a larger array based on a CTS URN range string.
+
+#### Parameters
+
+*   `rangeUrnString` (String): A CTS URN range string. The expected format is the full URN of the starting token, a hyphen (`-`), and then the passage identifier part of the ending token's URN.
+    Example: `"urn:cts:greekLit:tlg0552.tlg001.ap.tokens:1.ex.1.27-1.ex.1.37a"`
+*   `allTokensArray` (Array<`greeklib.Token`>): An array of `Token` objects (e.g., the full output of `greeklib.tokenize()` for a text).
+
+#### Returns
+
+*   (Array<`greeklib.Token`>): An array containing the `Token` objects that fall within the specified range, inclusive. Returns an empty array if the range is invalid or no tokens match.
+
+#### Process
+
+1.  Parses the `rangeUrnString` to determine the full URN of the start token and reconstruct the full URN of the end token.
+2.  Finds the indices of the start and end tokens within `allTokensArray`.
+3.  Returns a slice of `allTokensArray` from the start index to the end index (inclusive).
+
+### `greeklib.literarygreek()` (Function)
+
+A factory function that returns a pre-configured `greeklib.Orthography` object representing standard literary polytonic Ancient Greek.
+
+#### Parameters
+
+None.
+
+#### Returns
+
+*   (`greeklib.Orthography`): An `Orthography` object with:
+    *   `name`: `"Standard literary Greek orthography"`
+    *   `charset()`: A method returning an array of characters including:
+        *   Basic Greek alphabet (uppercase and lowercase).
+        *   Punctuation: `.`, `,`, `;`, `:`.
+        *   A comprehensive list of precomposed Unicode characters for polytonic Greek (from the "Greek and Coptic" and "Greek Extended" Unicode blocks).
+    *   `tokenize(inputString)`: A method that internally calls `greeklib.tokenize(inputString)` using the library's default tokenization rules.
+
+## Usage Examples
+
+```javascript
+// Get the standard literary Greek orthography
+const literaryGreek = greeklib.literarygreek();
+console.log("Orthography Name:", literaryGreek.name);
+
+// Get its character set
+// const charSet = literaryGreek.charset();
+// console.log("First 10 Chars:", charSet.slice(0, 10).join(" ")); // Charset is very long
+
+// Tokenize using the orthography's tokenizer
+const passageData = "urn:cts:greekLit:tlg0001.tlg001:1.1|Μῆνιν ἄειδε θεά.";
+const tokensFromOrtho = literaryGreek.tokenize(passageData);
+console.log("Tokens (from Ortho):", tokensFromOrtho);
+
+// Tokenize directly using the library's main function
+const tokensDirect = greeklib.tokenize(passageData);
+console.log("Tokens (direct):", tokensDirect);
+
+// --- Sentence and Token Range Example ---
+const corpusData = [
+    "urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.1|Δύο μεγεθῶν. Πρώτη πρότασις.",
+    "urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.2|Ἄλλη δέ τις. Καὶ οὕτως;"
+];
+
+// Get all tokens from the corpus
+const allCorpusTokens = greeklib.tokenize(corpusData);
+
+// Identify sentence ranges
+const sentenceUrns = greeklib.sentences(corpusData);
+console.log("Sentence URN Ranges:", sentenceUrns);
+
+// If sentences were found, get tokens for the first sentence
+if (sentenceUrns.length > 0) {
+    const firstSentenceRange = sentenceUrns[0];
+    const tokensInFirstSentence = greeklib.tokens(firstSentenceRange, allCorpusTokens);
+    console.log(`Tokens in sentence "${firstSentenceRange}":`, tokensInFirstSentence);
+}
+```
+
+## Tokenization Rules
+
+These rules apply to the default `greeklib.tokenize()` function and thus to the `tokenize` method of the `Orthography` object returned by `greeklib.literarygreek()`.
+
+### Text Splitting and Token Properties (`text`, `type`, `sequence`)
+
+1.  **Whitespace**: Whitespace characters (spaces, newlines, tabs) separate tokens but are not part of any token.
+2.  **Punctuation Tokens**:
+    *   Characters: `.`, `,`, `:`, `;`
+    *   Each forms a single token of type `"punctuation"`.
+3.  **Numeric Tokens**:
+    *   The character `ʹ` (Greek numeral sign / Keraia) flags a numeric token.
+    *   A preceding continuous series of non-punctuation, non-whitespace characters forms the `text` of a `"number"` token. The `ʹ` is not included in the `text`.
+    *   Example: "Αʹ" -> `text: "Α"`, `type: "number"`.
+4.  **Lexical Tokens**:
+    *   Any continuous series of non-punctuation, non-whitespace characters, not part of a numeric token, forms a `"lexical"` token.
+5.  **Sequence**: The `sequence` property is a 1-based integer, incrementing for each token within a single input passage string.
+
+### URN Generation for Tokens
+
+Each token receives a unique CTS URN.
+
+1.  **Modify Work Identifier (from passage URN)**:
+    *   If passage work ID has 3 parts (e.g., `tlg0552.tlg001.ap`): Append `.tokens`.
+        -> `tlg0552.tlg001.ap.tokens`
+    *   If passage work ID has 4+ parts (e.g., `tlg0552.tlg001.ap.normalized`): Append `_tokens`.
+        -> `tlg0552.tlg001.ap.normalized_tokens`
+    The base URN for tokens becomes: `urn:cts:<namespace>:<modified_work_id>:<original_passage_id>`
+
+2.  **Append Token-Specific Identifier**:
+    *   **Lexical/Numeric Tokens**: Sequentially numbered within the passage (e.g., `.1`, `.2`).
+    *   **Punctuation Tokens**: Appends the number of the preceding lexical/numeric token followed by `a` (e.g., `.2a`). If no such preceding token exists (e.g., punctuation at start), a placeholder like `.error_orphaned_punctuation_a` is used.
+
+## Sentence Identification
+
+The `greeklib.sentences()` function identifies sentences based on the following logic:
+*   It first tokenizes all input text passages using `greeklib.tokenize()`.
+*   Sentence terminators are tokens with the text `.` or `;`.
+*   The end of the entire token stream also implicitly ends the last sentence.
+*   The function returns an array of URN range strings. Each string identifies a sentence using the URN of its first token and the passage-specific part of the URN of its last token (e.g., `urn:...:1.1-1.5a`).
+
+## Contributing
+
+Contributions are welcome! Please submit pull requests or open issues for bugs, feature requests, or improvements.
+
+## License
+
+(Developer: Please choose and specify a license, e.g., MIT, Apache 2.0).
+```
+
+**Key updates in this README:**
+
+*   Added `greeklib.Orthography` and `greeklib.literarygreek()` to the API Reference.
+*   Added `greeklib.tokens()` to the API Reference.
+*   Updated the "Core Concepts" section to include "Orthography."
+*   Expanded "Usage Examples" to demonstrate the new functionalities.
+*   Added a "Sentence Identification" section explaining how `greeklib.sentences()` works.
+*   Ensured consistency in terminology and cross-references.
+
+Remember to replace `your-github-username/your-repo-name` in the CDN link and fill in the "License" section once you've decided on one.

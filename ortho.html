@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreekLib.js - Orthography Test</title>
+    <script src="greeklib.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea#charsetOutput {
+            min-height: 150px;
+            font-family: "Courier New", Courier, monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.9em;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #adb5bd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #dee2e6;
+        }
+        .token-text, #charsetOutput { /* Ensure Greek characters display well */
+            font-family: "GFS Neohellenic", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+        }
+        .error-message { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GreekLib.js - Orthography Test</h1>
+
+        <div id="orthographyInfo">
+            <h2>Orthography Details:</h2>
+            <p><strong>Name:</strong> <span id="orthoName"></span></p>
+
+            <label for="charsetOutput"><strong>Character Set:</strong></label>
+            <textarea id="charsetOutput" readonly></textarea>
+        </div>
+
+        <div class="results-section">
+            <h2>Test Orthography's Tokenizer:</h2>
+            <label for="tokenizeInput">Enter string to tokenize (format: <code>urn|text</code>):</label>
+            <input type="text" id="tokenizeInput" placeholder="e.g., urn:cts:greekLit:tlg0001.tlg001:1.1|Μῆνιν ἄειδε θεά.">
+            <button id="runTokenizerButton">Tokenize with Orthography Method</button>
+
+            <div id="tokenizerResults">
+                <!-- Tokenizer results will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get the Orthography object
+        const literaryGreekOrthography = greeklib.literarygreek();
+
+        // 1. Display the name property
+        document.getElementById('orthoName').textContent = literaryGreekOrthography.name;
+
+        // 2. Display the value of invoking the charset method
+        try {
+            const charsetArray = literaryGreekOrthography.charset();
+            // Displaying a very long list, perhaps join with spaces for better readability in textarea
+            document.getElementById('charsetOutput').value = charsetArray.join(' ');
+        } catch (e) {
+            document.getElementById('charsetOutput').value = `Error getting charset: ${e.message}`;
+            console.error("Charset error:", e);
+        }
+
+        // 3. Test the Orthography object's tokenize method
+        document.getElementById('runTokenizerButton').addEventListener('click', function() {
+            const inputString = document.getElementById('tokenizeInput').value;
+            const resultsDiv = document.getElementById('tokenizerResults');
+            resultsDiv.innerHTML = ''; // Clear previous results
+
+            if (!inputString.trim()) {
+                resultsDiv.innerHTML = '<p class="error-message">Please enter a string to tokenize.</p>';
+                return;
+            }
+            if (!inputString.includes('|')) {
+                 resultsDiv.innerHTML = '<p class="error-message">Input string must be in "urn|text" format.</p>';
+                return;
+            }
+
+
+            try {
+                const tokens = literaryGreekOrthography.tokenize(inputString);
+
+                if (tokens.length === 0) {
+                    resultsDiv.innerHTML = '<p>No tokens generated. (Check console for any warnings from the tokenizer if input seemed valid).</p>';
+                    return;
+                }
+
+                let tableHtml = '<h3>Tokens:</h3><table><thead><tr><th>Seq.</th><th>URN</th><th>Text</th><th>Type</th></tr></thead><tbody>';
+                tokens.forEach(token => {
+                    tableHtml += `<tr>
+                                    <td>${token.sequence}</td>
+                                    <td>${escapeHtml(token.urn)}</td>
+                                    <td class="token-text">${escapeHtml(token.text)}</td>
+                                    <td>${token.type}</td>
+                                  </tr>`;
+                });
+                tableHtml += '</tbody></table>';
+                resultsDiv.innerHTML = tableHtml;
+
+            } catch (e) {
+                resultsDiv.innerHTML = `<p class="error-message">Error during tokenization: ${escapeHtml(e.message)}</p>`;
+                console.error("Tokenizer error via Orthography object:", e);
+            }
+        });
+
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+        
+        // Pre-fill for convenience
+        document.getElementById('tokenizeInput').value = "urn:cts:greekLit:tlg0001.tlg001.pras:1.1|κόσμος, κόσμου.";
+    </script>
+</body>
+</html>
