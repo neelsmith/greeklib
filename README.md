@@ -10,8 +10,10 @@ The javascript library in `greeklib.js` is designed to simplify working with can
 
 In addition to the library itself (`greeklib.js`) and the documentation (`apis.md`), this repository a web app illustrating the library's functionality:
 
-- `tokenize.html`: a web page illustrating how to parse a citable text into a sequence of citable, classified tokens.
 
+- `ortho.html`: illustrates how to create an <code>Orthography</code> object for standard literary Greek orthography as found in printed editions, and use it to tokenize texts as `Token` objects.
+- `sentences.html`: illustrates how to analyze a text as sentences composed of a sequence of `Token`s.
+- `sentence-tokens.html`: illustrates how to analyze a text as sentences, and retrieve the corresponding `Token` objects.
 
 ## Planned development 
 

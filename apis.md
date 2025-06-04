@@ -35,7 +35,7 @@
 You can include `greeklib.js` directly in your HTML file from the jsDelivr CDN. Replace `your-github-username` and `your-repo-name` with your actual GitHub username and repository name, and `@main` with the specific branch, tag, or commit hash if needed.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/neelsmith/greeklib/greeklib.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/neelsmith/greeklib@1.1.0/greeklib.js"></script>
 ```
 
 ### Local Installation
