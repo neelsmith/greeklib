@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreekLib.js - Sentences Function Test</title>
+    <script src="greeklib.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.95em;
+            min-height: 150px;
+            resize: vertical;
+            font-family: "Menlo", "Monaco", "Courier New", monospace;
+        }
+        button {
+            background-color: #27ae60; /* Greenish */
+            color: white;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.05em;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #229954;
+        }
+        #resultsArea {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            background-color: #ecf0f1;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-family: "Menlo", "Monaco", "Courier New", monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+        .error-message {
+            color: #c0392b;
+            background-color: #fdedec;
+            padding: 12px;
+            border: 1px solid #e6b0aa;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .info-message {
+            color: #2980b9;
+            background-color: #eaf2f8;
+            padding: 12px;
+            border: 1px solid #aed6f1;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+    </style>
+</head><body>
+    <div class="container">
+        <h1>GreekLib.js - Sentence Analyzer</h1>
+        <p>Enter one or more <code>urn|text</code> pairs, each on a new line. The <code>sentences</code> function will tokenize the text and identify sentence ranges based on <code>.</code> or <code>;</code> terminators.</p>
+
+        <div>
+            <label for="inputText">Input (URN|Text per line):</label>
+            <textarea id="inputText" placeholder="e.g., urn:cts:greekLit:tlg0001.tlg001:1.1|Μῆνιν ἄειδε θεά. Πηληϊάδεω Ἀχιλῆος οὐλομένην."></textarea>
+            <button id="analyzeSentencesButton">Analyze Sentences</button>
+        </div>
+
+        <div id="resultsArea">
+            <!-- Results will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        // Pre-fill example data to test the sentences function based on the prompt's example
+        const exampleTextForSentences = `urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.1|Δύο μεγεθῶν ἀνίσων δοθέντων δυνατόν ἐστιν εὑρεῖν δύο εὐθείας ἀνίσους, ὥστε τὴν μείζονα εὐθεῖαν πρὸς τὴν ἐλάσσονα λόγον ἔχειν ἐλάσσονα ἤτοι μείζων μέγεθος πρὸς τὸ ἔλασσον. ἔστω δύο μεγέθη ἄνισα τὰ ΑΒΔ, καὶ ἔστω μείζων τὸ ΑΒ. λέγω ὅτι δυνατόν.
+urn:cts:greekLit:tlg0552.tlg001.ap:1.ex.2|Πάλιν ἄλλη πρότασις; Καὶ τοῦτο δείκνυται.`;
+        document.getElementById('inputText').value = exampleTextForSentences;
+
+        document.getElementById('analyzeSentencesButton').addEventListener('click', function() {
+            const inputText = document.getElementById('inputText').value;
+            const resultsArea = document.getElementById('resultsArea');
+            resultsArea.innerHTML = ''; // Clear previous results
+
+            const lines = inputText.split('\n').map(line => line.trim()).filter(line => line !== "");
+
+            if (lines.length === 0) {
+                resultsArea.innerHTML = '<p class="info-message">Please enter at least one "urn|text" line.</p>';
+                return;
+            }
+
+            try {
+                const sentenceUrns = greeklib.sentences(lines);
+
+                if (sentenceUrns.length === 0) {
+                    resultsArea.innerHTML = '<p class="info-message">No sentences were identified. This could be due to no text, no sentence terminators, or issues with tokenization (check console for warnings).</p>';
+                    return;
+                }
+
+                let listHtml = '<h2>Identified Sentence Ranges (URNs):</h2><ul>';
+                sentenceUrns.forEach(urn => {
+                    listHtml += `<li>${escapeHtml(urn)}</li>`;
+                });
+                listHtml += '</ul>';
+                resultsArea.innerHTML = listHtml;
+
+            } catch (e) {
+                resultsArea.innerHTML = `<p class="error-message"><strong>Error:</strong> ${escapeHtml(e.message)}</p>`;
+                console.error("Sentence analysis error:", e);
+            }
+        });
+
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return unsafe;
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
