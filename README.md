@@ -1,4 +1,4 @@
-# `greeklib.js` version 1.0.0
+# `greeklib.js` version 1.1.0
 
 > *A vibe coded Javascript library for working with text in polytonic ancient Greek.*
 
