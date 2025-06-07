@@ -27,7 +27,8 @@ I built this library, but I don't (and won't) write javascript, so I gave in com
 
 ### How I build it
 
-If you're curious about how I built the library, the file `chat.txt` has a complete transcript of the conversation I had with gemini-2.5-pro. The stages directory has the functioning intermediate versions of the library. The numbers in the filenames correspond to the sequence of the library in the conversation, culminating in urn-lib-6.js, which is the final version of the library, and identical to urn-lib.js in this repository.
+If you're curious about how I built the library, the file `chat.txt` has a complete transcript of the conversation I had with gemini-2.5-pro. The stages directory has the functioning intermediate versions of the library. 
+
 
 ## License
 
