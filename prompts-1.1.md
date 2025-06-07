@@ -376,3 +376,19 @@ Splendid! Let's add a parallel `isValidToken` function. It should take 2 paramet
 
 
 Then create an `Orthography` object with the `literarygreek()` function, and use its `tokenize` function to tokenize the user's input text. This returns an Array of `Token` objects. Invoke the new `isValidToken` function on each `Token`, and display the results.
+
+---
+
+Tokenization is not correctly recognizing the open and close parenthesis characters `(` and `)`. **Example***: Parsing this source string  `urn:cts:greekLit:tlg0016.tlg001.omar.tokens:1.12.1#(οὐ Κανδαύλεα)` should recognize four tokens:
+
+1. a punctuation token with `text` value `(`
+2. a lexical token with `text` value `οὐ`
+3. a lexical token with `text` value `Κανδαύλεα`
+4. a punctuation token with `text` value `)`
+
+Please fix this and show me the complete `greek.js` library with this modification.
+
+
+---
+
+That's better! One more tweak: let's add the 2 "curly quote" characters `“` and `”` to the list of valid punctuation characters. They should be recognized as valid by the `Orthography` object returned by `literarygreek()`, and should be recognized as punctuation tokens.  Please implement this and show me the resulting `greeklib.js` library.
