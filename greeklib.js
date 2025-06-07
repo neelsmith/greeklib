@@ -41,6 +41,7 @@
         // Normalize the processed string to NFC (Normalization Form C - Precomposed)
         return processedString.normalize('NFC');
     }
+
     function modifyPassageUrnForTokens(passageUrn) {
         const parts = passageUrn.split(':');
         if (parts.length < 5) {
@@ -60,7 +61,7 @@
         return parts.slice(0, 3).join(':') + ':' + newWorkId + ':' + originalPassageRef;
     }
 
-    function tokenizeInternal(input) { // Renamed to avoid conflict if Orthography.tokenize is called directly
+    function tokenizeInternal(input) {
         const inputTextPairs = [];
         if (typeof input === 'string') {
             inputTextPairs.push(input);
@@ -72,7 +73,6 @@
 
         const allTokens = [];
         for (const pair of inputTextPairs) {
-            // ... (rest of the tokenizeInternal logic remains the same as the previous tokenize) ...
             if (typeof pair !== 'string' || !pair.includes('|')) {
                 console.warn(`Skipping malformed input pair: "${pair}". Expected "urn|text" format.`);
                 continue;
@@ -83,7 +83,7 @@
                 continue;
             }
             const passageUrn = parts[0].trim();
-            const passageText = parts[1]; 
+            const passageText = parts[1];
 
             if (!passageUrn) {
                 console.warn(`Skipping input pair with empty URN: "${pair}".`);
@@ -99,9 +99,8 @@
                 baseUrnForTokensInPassage = modifyPassageUrnForTokens(passageUrn);
             } catch (e) {
                 console.error(`Error modifying URN for tokenization (passage URN: "${passageUrn}"): ${e.message}`);
-                continue; 
+                continue;
             }
-            
             let tokenSequenceInPassage = 0;
             let lexicalNumericCounterForUrn = 0;
             let lastLexicalOrNumericUrnId = "";
@@ -121,10 +120,9 @@
                 if (PUNCTUATION_CHARS.includes(char)) {
                     currentTokenText = char;
                     currentTokenType = "punctuation";
-                    currentIndex++; 
-
+                    currentIndex++;
                     if (!lastLexicalOrNumericUrnId) {
-                        console.warn(`Punctuation token "${currentTokenText}" in URN "${passageUrn}" cannot be assigned a URN suffix according to the rules, as no preceding non-punctuation token ID is available. Assigning a placeholder suffix.`);
+                        // console.warn(`Punctuation token "${currentTokenText}" in URN "${passageUrn}" cannot be assigned a URN suffix according to the rules, as no preceding non-punctuation token ID is available. Assigning a placeholder suffix.`);
                         tokenUrnSuffix = "error_orphaned_punctuation_a";
                     } else {
                         tokenUrnSuffix = lastLexicalOrNumericUrnId + "a";
@@ -136,7 +134,6 @@
                         tokenBuffer += passageText[tempIndex];
                         tempIndex++;
                     }
-
                     if (tokenBuffer.endsWith(NUMERIC_TOKEN_FLAG) && tokenBuffer.length > NUMERIC_TOKEN_FLAG.length) {
                         currentTokenText = tokenBuffer.slice(0, -NUMERIC_TOKEN_FLAG.length);
                         currentTokenType = "number";
@@ -145,7 +142,6 @@
                         currentTokenType = "lexical";
                     }
                     currentIndex = tempIndex;
-
                     lexicalNumericCounterForUrn++;
                     tokenUrnSuffix = lexicalNumericCounterForUrn.toString();
                     lastLexicalOrNumericUrnId = tokenUrnSuffix;
@@ -167,10 +163,8 @@
         }
         const validInputs = inputArray.filter(s => typeof s === 'string' && s.trim() !== "" && s.includes('|'));
         if (validInputs.length === 0) return [];
-        
         const allTokens = tokenizeInternal(validInputs);
         if (allTokens.length === 0) return [];
-
         const sentenceRanges = [];
         let currentSentenceStartIndex = 0;
         for (let i = 0; i < allTokens.length; i++) {
@@ -200,7 +194,6 @@
             throw new Error("Second parameter must be an array of Token objects.");
         }
         if (allTokensArray.length === 0) return [];
-
         const parts = rangeUrnString.split('-');
         if (parts.length !== 2 || !parts[0] || !parts[1]) {
             throw new Error("Invalid range URN string: Must be 'START_URN-END_SUFFIX'.");
@@ -213,7 +206,6 @@
         }
         const urnBaseForEndToken = startTokenFullUrn.substring(0, lastColonInStartUrn + 1);
         const endTokenFullUrn = urnBaseForEndToken + endTokenPassageIdSuffixFromRange;
-
         let startIndex = -1, endIndex = -1;
         for (let i = 0; i < allTokensArray.length; i++) {
             const currentToken = allTokensArray[i];
@@ -228,22 +220,21 @@
         return allTokensArray.slice(startIndex, endIndex + 1);
     }
 
-    // --- New Orthography Class and literarygreek function ---
     class Orthography {
         constructor(name, charsetMethod, tokenizeMethod) {
             this.name = name;
-            this.charset = charsetMethod; // Store the method itself
-            this.tokenize = tokenizeMethod; // Store the method itself
+            this.charset = charsetMethod;
+            this.tokenize = tokenizeMethod;
         }
     }
 
     function literarygreek() {
         const name = "Standard literary Greek orthography";
-
         const charsetMethod = function() {
             const charSet = new Set();
 
-            charSet.add("'") // Elision mark
+            charSet.add("'"); // Elision mark (U+0027 APOSTROPHE)
+
             // Basic lowercase Greek letters
             for (let i = 0x03B1; i <= 0x03C1; i++) charSet.add(String.fromCharCode(i)); // α-ρ
             charSet.add(String.fromCharCode(0x03C2)); // ς (final sigma)
@@ -251,14 +242,12 @@
 
             // Basic uppercase Greek letters
             for (let i = 0x0391; i <= 0x03A1; i++) charSet.add(String.fromCharCode(i)); // Α-Ρ
-            // Skip 0x03A2 (deprecated GREEK LETTER LUNATE SIGMA SYMBOL)
             for (let i = 0x03A3; i <= 0x03A9; i++) charSet.add(String.fromCharCode(i)); // Σ-Ω
 
-            // Punctuation
-            ['.', ',', ';', ':'].forEach(p => charSet.add(p));
+            // Punctuation - Includes ( ) " via PUNCTUATION_CHARS constant
+            PUNCTUATION_CHARS.forEach(p => charSet.add(p));
 
             // Common precomposed characters from Greek and Coptic block (U+0370-U+03FF)
-            // (vowels with tonos, vowels with diaeresis)
             [
                 0x03AC, 0x03AD, 0x03AE, 0x03AF, 0x03CC, 0x03CD, 0x03CE, // ά έ ή ί ό ύ ώ
                 0x0386, 0x0388, 0x0389, 0x038A, 0x038C, 0x038E, 0x038F, // Ά Έ Ή Ί Ό Ύ Ώ
@@ -267,78 +256,103 @@
             ].forEach(code => charSet.add(String.fromCharCode(code)));
 
             // Precomposed letters from Greek Extended block (U+1F00-U+1FFF)
-            // These are ranges of precomposed letters.
             const greekExtendedLetterRanges = [
-                [0x1F00, 0x1F07], [0x1F08, 0x1F0F], // smooth breathing
-                [0x1F10, 0x1F15], [0x1F18, 0x1F1D], // rough breathing
-                [0x1F20, 0x1F27], [0x1F28, 0x1F2F], // smooth + grave
-                [0x1F30, 0x1F37], [0x1F38, 0x1F3F], // smooth + acute
-                [0x1F40, 0x1F45], [0x1F48, 0x1F4D], // rough + grave
-                [0x1F50, 0x1F57],                   // rough + acute (includes upsilon/omega variants)
-                [0x1F59, 0x1F59], [0x1F5B, 0x1F5B], [0x1F5D, 0x1F5D], // Uppercase rough+acute (H, Y)
-                [0x1F60, 0x1F67], [0x1F68, 0x1F6F], // smooth + circumflex
-                [0x1F70, 0x1F7D],                   // vowels with grave / acute (some overlap, Set handles)
-                // Iota subscript forms
-                [0x1F80, 0x1F87], [0x1F88, 0x1F8F], // alpha + iota_sub + accents/breathings
-                [0x1F90, 0x1F97], [0x1F98, 0x1F9F], // eta + iota_sub + accents/breathings
-                [0x1FA0, 0x1FA7], [0x1FA8, 0x1FAF], // omega + iota_sub + accents/breathings
-                // Standalone accented letters and iota subscript letters
-                [0x1FB0, 0x1FB4], // alpha forms (grave, acute, circumflex, iota_sub)
-                [0x1FB6, 0x1FB7], // alpha circumflex with/without iota_sub
-                [0x1FBA, 0x1FBB], // Alpha grave, Eta grave (not here, they are 1F70, 1F74)
-                [0x1FBC, 0x1FBC], // ᾳ (alpha with iota subscript)
-                [0x1FC2, 0x1FC4], // eta forms (grave, acute, circumflex)
-                [0x1FC6, 0x1FC7], // eta circumflex with/without iota_sub
-                [0x1FCA, 0x1FCB], // Omega grave, Eta grave (not here, U+1F7C, U+1F74)
-                [0x1FCC, 0x1FCC], // ῃ (eta with iota subscript)
-                [0x1FD0, 0x1FD3], // iota forms (grave, acute, circumflex, dialytika+grave)
-                [0x1FD6, 0x1FD7], // iota circumflex, iota dialytika+circumflex
-                [0x1FDA, 0x1FDB], // Iota grave (not here, U+1F76)
-                [0x1FE0, 0x1FE7], // upsilon forms, rho forms (includes ῤ, ῥ)
-                [0x1FEA, 0x1FEB], // Upsilon grave (not here, U+1F7A)
-                [0x1FEC, 0x1FEC], // ῳ (omega with iota subscript)
-                [0x1FF2, 0x1FF4], // omega forms (grave, acute, circumflex)
-                [0x1FF6, 0x1FF7], // omega circumflex with/without iota_sub
-                // [0x1FFA, 0x1FFB] // Omega grave (not here U+1F7C)
-                // [0x1FFC, 0x1FFC] // this is ῳ again, 1FEC is preferred.
+                [0x1F00, 0x1F07], [0x1F08, 0x1F0F],
+                [0x1F10, 0x1F15], [0x1F18, 0x1F1D],
+                [0x1F20, 0x1F27], [0x1F28, 0x1F2F],
+                [0x1F30, 0x1F37], [0x1F38, 0x1F3F],
+                [0x1F40, 0x1F45], [0x1F48, 0x1F4D],
+                [0x1F50, 0x1F57],
+                [0x1F59, 0x1F59], [0x1F5B, 0x1F5B], [0x1F5D, 0x1F5D],
+                [0x1F60, 0x1F67], [0x1F68, 0x1F6F],
+                [0x1F70, 0x1F7D],
+                [0x1F80, 0x1F87], [0x1F88, 0x1F8F],
+                [0x1F90, 0x1F97], [0x1F98, 0x1F9F],
+                [0x1FA0, 0x1FA7], [0x1FA8, 0x1FAF],
+                [0x1FB0, 0x1FB4],
+                [0x1FB6, 0x1FB7],
+                [0x1FBC, 0x1FBC],
+                [0x1FC2, 0x1FC4],
+                [0x1FC6, 0x1FC7],
+                [0x1FCC, 0x1FCC],
+                [0x1FD0, 0x1FD3],
+                [0x1FD6, 0x1FD7],
+                [0x1FE0, 0x1FE7],
+                [0x1FEC, 0x1FEC],
+                [0x1FF2, 0x1FF4],
+                [0x1FF6, 0x1FF7],
             ];
-
             for (const range of greekExtendedLetterRanges) {
-                for (let i = range[0]; i <= range[1]; i++) {
-                     // Some ranges are sparse or have non-letters, a more robust check might be needed
-                     // For now, this will add all code points in specified ranges.
-                    charSet.add(String.fromCharCode(i));
-                }
+                for (let i = range[0]; i <= range[1]; i++) charSet.add(String.fromCharCode(i));
             }
-             // Add specific characters that might be missed or are important
-            [0x1FB3, // ᾳ (alpha + iota sub + oxia)
-             0x1FC3, // ῃ (eta + iota sub + oxia)
-             0x1FF3, // ΐ (iota + dialytika + oxia)
-             0x1FE5, // ῥ
-             0x1FE4, // ῤ
+            [
+             0x1FB3, // ᾳ GREEK SMALL LETTER ALPHA WITH YPOGEGRAMMENI
+             0x1FC3, // ῃ GREEK SMALL LETTER ETA WITH YPOGEGRAMMENI
+             0x1FF3, // ῳ GREEK SMALL LETTER OMEGA WITH YPOGEGRAMMENI
             ].forEach(c => charSet.add(String.fromCharCode(c)));
-
 
             return Array.from(charSet).sort((a, b) => a.codePointAt(0) - b.codePointAt(0));
         };
 
-        // The Orthography.tokenize method will call the global greeklib.tokenize (now tokenizeInternal)
         const tokenizeMethod = function(inputString) {
-            return tokenizeInternal(inputString); // Call the main tokenize function
+            return tokenizeInternal(inputString);
         };
 
         return new Orthography(name, charsetMethod, tokenizeMethod);
     }
 
+    /**
+     * Checks if all characters in a string are valid according to the provided orthography.
+     * @param {string} str The string to check.
+     * @param {Orthography} orthography An Orthography object with a charset() method.
+     * @returns {boolean} True if all characters are valid, false otherwise.
+     */
+    function isValidString(str, orthography) {
+        if (typeof str !== 'string') {
+            // console.warn("isValidString: first parameter must be a string.");
+            return false;
+        }
+        if (!orthography || typeof orthography.charset !== 'function') {
+            // console.warn("isValidString: second parameter must be an Orthography object with a charset method.");
+            return false;
+        }
+        const validCharSet = new Set(orthography.charset());
+        for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            if (!validCharSet.has(char)) {
+                // For debugging:
+                // console.log(`Invalid character: '${char}' (U+${char.charCodeAt(0).toString(16).toUpperCase()}) in string "${str}" according to orthography "${orthography.name}"`);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Checks if a Token object's text is valid according to the provided orthography.
+     * @param {Token} token The Token object to check.
+     * @param {Orthography} orthography An Orthography object.
+     * @returns {boolean} True if the token's text is valid, false otherwise.
+     */
+    function isValidToken(token, orthography) {
+        if (!(token instanceof Token) || typeof token.text !== 'string') {
+            // console.warn("isValidToken: first parameter must be a Token object with a text property.");
+            return false;
+        }
+        // The check for orthography.charset is handled by isValidString
+        return isValidString(token.text, orthography);
+    }
 
     // Expose greeklib
     const greeklib = {
         Token,
-        tokenize: tokenizeInternal, // Keep original name for external use
+        tokenize: tokenizeInternal,
         sentences,
         tokens,
-        Orthography,        // New Class
-        literarygreek       // New factory function
+        Orthography,
+        literarygreek,
+        isValidString,
+        isValidToken
     };
 
     if (typeof define === 'function' && define.amd) {

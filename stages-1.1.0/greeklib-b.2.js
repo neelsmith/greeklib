@@ -1,6 +1,3 @@
-I have a javascript library named `greeklib.js` that I want to modify. Here is the current library:
-
-```
 // greeklib.js
 (function(root) {
     'use strict';
@@ -75,7 +72,6 @@ I have a javascript library named `greeklib.js` that I want to modify. Here is t
 
         const allTokens = [];
         for (const pair of inputTextPairs) {
-            // ... (rest of the tokenizeInternal logic remains the same as the previous tokenize) ...
             if (typeof pair !== 'string' || !pair.includes('|')) {
                 console.warn(`Skipping malformed input pair: "${pair}". Expected "urn|text" format.`);
                 continue;
@@ -86,7 +82,7 @@ I have a javascript library named `greeklib.js` that I want to modify. Here is t
                 continue;
             }
             const passageUrn = parts[0].trim();
-            const passageText = parts[1]; 
+            const passageText = parts[1];
 
             if (!passageUrn) {
                 console.warn(`Skipping input pair with empty URN: "${pair}".`);
@@ -102,9 +98,8 @@ I have a javascript library named `greeklib.js` that I want to modify. Here is t
                 baseUrnForTokensInPassage = modifyPassageUrnForTokens(passageUrn);
             } catch (e) {
                 console.error(`Error modifying URN for tokenization (passage URN: "${passageUrn}"): ${e.message}`);
-                continue; 
+                continue;
             }
-            
             let tokenSequenceInPassage = 0;
             let lexicalNumericCounterForUrn = 0;
             let lastLexicalOrNumericUrnId = "";
@@ -124,7 +119,7 @@ I have a javascript library named `greeklib.js` that I want to modify. Here is t
                 if (PUNCTUATION_CHARS.includes(char)) {
                     currentTokenText = char;
                     currentTokenType = "punctuation";
-                    currentIndex++; 
+                    currentIndex++;
 
                     if (!lastLexicalOrNumericUrnId) {
                         console.warn(`Punctuation token "${currentTokenText}" in URN "${passageUrn}" cannot be assigned a URN suffix according to the rules, as no preceding non-punctuation token ID is available. Assigning a placeholder suffix.`);
@@ -170,7 +165,6 @@ I have a javascript library named `greeklib.js` that I want to modify. Here is t
         }
         const validInputs = inputArray.filter(s => typeof s === 'string' && s.trim() !== "" && s.includes('|'));
         if (validInputs.length === 0) return [];
-        
         const allTokens = tokenizeInternal(validInputs);
         if (allTokens.length === 0) return [];
 
@@ -246,7 +240,7 @@ I have a javascript library named `greeklib.js` that I want to modify. Here is t
         const charsetMethod = function() {
             const charSet = new Set();
 
-            charSet.add("'") // Elision mark
+            charSet.add("'") // Elision mark (U+0027 APOSTROPHE)
             // Basic lowercase Greek letters
             for (let i = 0x03B1; i <= 0x03C1; i++) charSet.add(String.fromCharCode(i)); // α-ρ
             charSet.add(String.fromCharCode(0x03C2)); // ς (final sigma)
@@ -257,11 +251,10 @@ I have a javascript library named `greeklib.js` that I want to modify. Here is t
             // Skip 0x03A2 (deprecated GREEK LETTER LUNATE SIGMA SYMBOL)
             for (let i = 0x03A3; i <= 0x03A9; i++) charSet.add(String.fromCharCode(i)); // Σ-Ω
 
-            // Punctuation
+            // Punctuation (Note: '(', ')', '"' from PUNCTUATION_CHARS are not included here)
             ['.', ',', ';', ':'].forEach(p => charSet.add(p));
 
             // Common precomposed characters from Greek and Coptic block (U+0370-U+03FF)
-            // (vowels with tonos, vowels with diaeresis)
             [
                 0x03AC, 0x03AD, 0x03AE, 0x03AF, 0x03CC, 0x03CD, 0x03CE, // ά έ ή ί ό ύ ώ
                 0x0386, 0x0388, 0x0389, 0x038A, 0x038C, 0x038E, 0x038F, // Ά Έ Ή Ί Ό Ύ Ώ
@@ -270,78 +263,100 @@ I have a javascript library named `greeklib.js` that I want to modify. Here is t
             ].forEach(code => charSet.add(String.fromCharCode(code)));
 
             // Precomposed letters from Greek Extended block (U+1F00-U+1FFF)
-            // These are ranges of precomposed letters.
             const greekExtendedLetterRanges = [
-                [0x1F00, 0x1F07], [0x1F08, 0x1F0F], // smooth breathing
-                [0x1F10, 0x1F15], [0x1F18, 0x1F1D], // rough breathing
-                [0x1F20, 0x1F27], [0x1F28, 0x1F2F], // smooth + grave
-                [0x1F30, 0x1F37], [0x1F38, 0x1F3F], // smooth + acute
-                [0x1F40, 0x1F45], [0x1F48, 0x1F4D], // rough + grave
-                [0x1F50, 0x1F57],                   // rough + acute (includes upsilon/omega variants)
-                [0x1F59, 0x1F59], [0x1F5B, 0x1F5B], [0x1F5D, 0x1F5D], // Uppercase rough+acute (H, Y)
-                [0x1F60, 0x1F67], [0x1F68, 0x1F6F], // smooth + circumflex
-                [0x1F70, 0x1F7D],                   // vowels with grave / acute (some overlap, Set handles)
-                // Iota subscript forms
-                [0x1F80, 0x1F87], [0x1F88, 0x1F8F], // alpha + iota_sub + accents/breathings
-                [0x1F90, 0x1F97], [0x1F98, 0x1F9F], // eta + iota_sub + accents/breathings
-                [0x1FA0, 0x1FA7], [0x1FA8, 0x1FAF], // omega + iota_sub + accents/breathings
-                // Standalone accented letters and iota subscript letters
-                [0x1FB0, 0x1FB4], // alpha forms (grave, acute, circumflex, iota_sub)
-                [0x1FB6, 0x1FB7], // alpha circumflex with/without iota_sub
-                [0x1FBA, 0x1FBB], // Alpha grave, Eta grave (not here, they are 1F70, 1F74)
-                [0x1FBC, 0x1FBC], // ᾳ (alpha with iota subscript)
-                [0x1FC2, 0x1FC4], // eta forms (grave, acute, circumflex)
-                [0x1FC6, 0x1FC7], // eta circumflex with/without iota_sub
-                [0x1FCA, 0x1FCB], // Omega grave, Eta grave (not here, U+1F7C, U+1F74)
-                [0x1FCC, 0x1FCC], // ῃ (eta with iota subscript)
-                [0x1FD0, 0x1FD3], // iota forms (grave, acute, circumflex, dialytika+grave)
-                [0x1FD6, 0x1FD7], // iota circumflex, iota dialytika+circumflex
-                [0x1FDA, 0x1FDB], // Iota grave (not here, U+1F76)
-                [0x1FE0, 0x1FE7], // upsilon forms, rho forms (includes ῤ, ῥ)
-                [0x1FEA, 0x1FEB], // Upsilon grave (not here, U+1F7A)
-                [0x1FEC, 0x1FEC], // ῳ (omega with iota subscript)
-                [0x1FF2, 0x1FF4], // omega forms (grave, acute, circumflex)
-                [0x1FF6, 0x1FF7], // omega circumflex with/without iota_sub
-                // [0x1FFA, 0x1FFB] // Omega grave (not here U+1F7C)
-                // [0x1FFC, 0x1FFC] // this is ῳ again, 1FEC is preferred.
+                [0x1F00, 0x1F07], [0x1F08, 0x1F0F],
+                [0x1F10, 0x1F15], [0x1F18, 0x1F1D],
+                [0x1F20, 0x1F27], [0x1F28, 0x1F2F],
+                [0x1F30, 0x1F37], [0x1F38, 0x1F3F],
+                [0x1F40, 0x1F45], [0x1F48, 0x1F4D],
+                [0x1F50, 0x1F57],
+                [0x1F59, 0x1F59], [0x1F5B, 0x1F5B], [0x1F5D, 0x1F5D],
+                [0x1F60, 0x1F67], [0x1F68, 0x1F6F],
+                [0x1F70, 0x1F7D],
+                [0x1F80, 0x1F87], [0x1F88, 0x1F8F],
+                [0x1F90, 0x1F97], [0x1F98, 0x1F9F],
+                [0x1FA0, 0x1FA7], [0x1FA8, 0x1FAF],
+                [0x1FB0, 0x1FB4],
+                [0x1FB6, 0x1FB7],
+                [0x1FBC, 0x1FBC],
+                [0x1FC2, 0x1FC4],
+                [0x1FC6, 0x1FC7],
+                [0x1FCC, 0x1FCC],
+                [0x1FD0, 0x1FD3],
+                [0x1FD6, 0x1FD7],
+                [0x1FE0, 0x1FE7], // Includes ῤ (1FE4), ῥ (1FE5)
+                [0x1FEC, 0x1FEC],
+                [0x1FF2, 0x1FF4],
+                [0x1FF6, 0x1FF7],
             ];
 
             for (const range of greekExtendedLetterRanges) {
                 for (let i = range[0]; i <= range[1]; i++) {
-                     // Some ranges are sparse or have non-letters, a more robust check might be needed
-                     // For now, this will add all code points in specified ranges.
                     charSet.add(String.fromCharCode(i));
                 }
             }
-             // Add specific characters that might be missed or are important
-            [0x1FB3, // ᾳ (alpha + iota sub + oxia)
-             0x1FC3, // ῃ (eta + iota sub + oxia)
-             0x1FF3, // ΐ (iota + dialytika + oxia)
-             0x1FE5, // ῥ
-             0x1FE4, // ῤ
+             // Add specific characters that might be missed or are important (some might be redundant if covered by ranges)
+            [
+             0x1FB3, // ᾳ GREEK SMALL LETTER ALPHA WITH YPOGEGRAMMENI
+             0x1FC3, // ῃ GREEK SMALL LETTER ETA WITH YPOGEGRAMMENI
+             0x1FF3, // ῳ GREEK SMALL LETTER OMEGA WITH YPOGEGRAMMENI (Corrected comment from ΐ)
+             // 0x1FE5, // ῥ (already in range 1FE0-1FE7)
+             // 0x1FE4, // ῤ (already in range 1FE0-1FE7)
+             // U+1FF3 is GREEK SMALL LETTER OMEGA WITH YPOGEGRAMMENI, not iota+diaeresis+oxia (that's ΐ U+1FD3).
+             // U+1FD3 is covered by [0x1FD0, 0x1FD3].
             ].forEach(c => charSet.add(String.fromCharCode(c)));
 
 
             return Array.from(charSet).sort((a, b) => a.codePointAt(0) - b.codePointAt(0));
         };
 
-        // The Orthography.tokenize method will call the global greeklib.tokenize (now tokenizeInternal)
         const tokenizeMethod = function(inputString) {
-            return tokenizeInternal(inputString); // Call the main tokenize function
+            return tokenizeInternal(inputString);
         };
 
         return new Orthography(name, charsetMethod, tokenizeMethod);
+    }
+
+    // *** NEW FUNCTION: isValidString ***
+    /**
+     * Checks if all characters in a string are valid according to the provided orthography.
+     * @param {string} str The string to check.
+     * @param {Orthography} orthography An Orthography object with a charset() method.
+     * @returns {boolean} True if all characters are valid, false otherwise.
+     */
+    function isValidString(str, orthography) {
+        if (typeof str !== 'string') {
+            // console.warn("isValidString: first parameter must be a string.");
+            return false;
+        }
+        if (!orthography || typeof orthography.charset !== 'function') {
+            // console.warn("isValidString: second parameter must be an Orthography object with a charset method.");
+            return false;
+        }
+
+        const validCharSet = new Set(orthography.charset()); // Get charset and convert to Set for efficient lookup
+
+        for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            if (!validCharSet.has(char)) {
+                // For debugging:
+                // console.log(`Invalid character: '${char}' (U+${char.charCodeAt(0).toString(16).toUpperCase()}) in string "${str}" according to orthography "${orthography.name}"`);
+                return false;
+            }
+        }
+        return true;
     }
 
 
     // Expose greeklib
     const greeklib = {
         Token,
-        tokenize: tokenizeInternal, // Keep original name for external use
+        tokenize: tokenizeInternal,
         sentences,
         tokens,
-        Orthography,        // New Class
-        literarygreek       // New factory function
+        Orthography,
+        literarygreek,
+        isValidString // Added the new function
     };
 
     if (typeof define === 'function' && define.amd) {
@@ -353,26 +368,3 @@ I have a javascript library named `greeklib.js` that I want to modify. Here is t
     }
 
 })(typeof self !== 'undefined' ? self : this);
-```
-
-
-I would like to add a Boolean function `isValidString`. It takes two parameters: 1) a string and 2) an `Orthography` object. `Orthography` objects have a method `charset` that returns the set of valid characters in that orthography. `isValidString` should check every character in the string parameter (first parameter). If all occur in the set returned by the `charset` method, then `isValidString` is `true`; otherwise it is `false`.
-
-Please implement this function and write an HTML to test it as follows. First, allow the user to enter a string value: use this as the default value:
-
-`urn:cts:greekLit:tlg0016.tlg001.omar:1.1.0|̔Ηροδότου ̔Αλικαρνησσέος ἱστορίης ἀπόδεξις ἥδε, ὡς μήτε τὰ γενόμενα ἐξ ἀνθρώπων τῷ χρόνῳ ἐξίτηλα γένηται, μήτε ἔργα μεγάλα τε καὶ θωμαστά, τὰ μὲν ̔́Ελλησι τὰ δὲ βαρβάροισι ἀποδεχθέντα, ἀκλεᾶ γένηται, τά τε ἄλλα καὶ δι' ἣν αἰτίην ἐπολέμησαν ἀλλήλοισι.`
-
-Then create an `Orthography` object with the `literarygreek()` function, and its `tokenize` function to tokenize the user's input text. This returns an Array of `Token` objects. Each `Token` object has a `text` property. Test the `text` property of each token by using it as the first parameter to the new `isValidString` function, with the orthography object as the second parameter. Display the results for each token.
-
----
-
-This is great! Your note about the characters `(`,  `)` and  `"` was very helpful! Could you add them to the list of valid characters returned by the `charset` method of the object created by the `literarygreek()` factory function?
-
----
-
-Splendid! Let's add a parallel `isValidToken` function. It should take 2 parameters, a `Token` object and an `Orthography` object. It can simply invoke `isValidString` using the `text` property of the given `Token` as the first parameter, and the `Orthography` object as the second parameter. Please implement this and test it by writing an HTML file that allows the user to enter a string value: use this as the default value:
-
-`urn:cts:greekLit:tlg0016.tlg001.omar:1.1.0|̔Ηροδότου ̔Αλικαρνησσέος ἱστορίης ἀπόδεξις ἥδε, ὡς μήτε τὰ γενόμενα ἐξ ἀνθρώπων τῷ χρόνῳ ἐξίτηλα γένηται, μήτε ἔργα μεγάλα τε καὶ θωμαστά, τὰ μὲν ̔́Ελλησι τὰ δὲ βαρβάροισι ἀποδεχθέντα, ἀκλεᾶ γένηται, τά τε ἄλλα καὶ δι' ἣν αἰτίην ἐπολέμησαν ἀλλήλοισι.`
-
-
-Then create an `Orthography` object with the `literarygreek()` function, and use its `tokenize` function to tokenize the user's input text. This returns an Array of `Token` objects. Invoke the new `isValidToken` function on each `Token`, and display the results.

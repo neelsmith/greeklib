@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Greeklib Test - isValidString</title>
+    <script src="greeklib.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 20px; line-height: 1.6; }
+        textarea { width: 100%; min-height: 100px; margin-bottom: 10px; box-sizing: border-box; }
+        button { padding: 10px 15px; cursor: pointer; }
+        #results { margin-top: 20px; padding: 10px; border: 1px solid #ccc; background-color: #f9f9f9; white-space: pre-wrap; font-family: monospace; max-height: 400px; overflow-y: auto;}
+        .token-item { margin-bottom: 5px; padding: 3px; border-radius: 3px; }
+        .token-valid { color: green; font-weight: bold; }
+        .token-invalid { color: red; font-weight: bold; }
+        .token-item span { vertical-align: middle; }
+        .invalid-char-detail { font-size: 0.9em; color: #555; margin-left: 10px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold;}
+    </style>
+</head>
+<body>
+    <h1>Test <code>greeklib.isValidString</code></h1>
+
+    <label for="inputText">Enter text (urn|text format):</label>
+    <textarea id="inputText">urn:cts:greekLit:tlg0016.tlg001.omar:1.1.0|̔Ηροδότου ̔Αλικαρνησσέος ἱστορίης ἀπόδεξις ἥδε, ὡς μήτε τὰ γενόμενα ἐξ ἀνθρώπων τῷ χρόνῳ ἐξίτηλα γένηται, μήτε ἔργα μεγάλα τε καὶ θωμαστά, τὰ μὲν ̔́Ελλησι τὰ δὲ βαρβάροισι ἀποδεχθέντα, ἀκλεᾶ γένηται, τά τε ἄλλα καὶ δι' ἣν αἰτίην ἐπολέμησαν ἀλλήλοισι.</textarea>
+
+    <button id="testButton">Test Tokens</button>
+
+    <h2>Results:</h2>
+    <div id="results">
+        Click "Test Tokens" to see the validation results.
+    </div>
+
+    <script>
+        document.getElementById('testButton').addEventListener('click', function() {
+            const inputTextValue = document.getElementById('inputText').value;
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = ''; // Clear previous results
+
+            if (!window.greeklib) {
+                resultsDiv.textContent = 'Error: greeklib.js not loaded.';
+                return;
+            }
+
+            const { literarygreek, isValidString, Token } = greeklib; // Added Token for instanceof check if needed
+
+            if (!inputTextValue.trim()) {
+                resultsDiv.textContent = 'Input text is empty.';
+                return;
+            }
+            
+            let literaryGreekOrthography;
+            try {
+                literaryGreekOrthography = literarygreek();
+            } catch (e) {
+                const errorP = document.createElement('p');
+                errorP.style.color = 'red';
+                errorP.textContent = `Error creating Orthography object: ${e.message}`;
+                resultsDiv.appendChild(errorP);
+                console.error(e);
+                return;
+            }
+
+            let tokensArray;
+            try {
+                // The tokenize method on the Orthography object calls tokenizeInternal,
+                // which expects "urn|text" or an array of such strings.
+                // The input is a single "urn|text" string.
+                tokensArray = literaryGreekOrthography.tokenize(inputTextValue);
+            } catch (e) {
+                const errorP = document.createElement('p');
+                errorP.style.color = 'red';
+                errorP.textContent = `Error tokenizing input: ${e.message}`;
+                resultsDiv.appendChild(errorP);
+                console.error(e);
+                return;
+            }
+
+            if (!tokensArray || tokensArray.length === 0) {
+                let message = 'No tokens were generated from the input.';
+                if (inputTextValue.includes('|')) {
+                     const textPart = inputTextValue.split('|')[1];
+                     if (!textPart || !textPart.trim()) {
+                         message += ' The text part after "|" seems empty or contains only whitespace.';
+                     }
+                } else {
+                    message += ' Make sure input is in "urn|text" format.';
+                }
+                resultsDiv.textContent = message;
+                return;
+            }
+            
+            tokensArray.forEach(token => {
+                if (!(token instanceof Token) || typeof token.text !== 'string') {
+                    console.warn("Encountered an item in tokensArray that is not a valid Token object:", token);
+                    return; // Skip this item
+                }
+
+                const isValid = isValidString(token.text, literaryGreekOrthography);
+                
+                const resultItem = document.createElement('div');
+                resultItem.classList.add('token-item');
+                
+                const tokenTextSpan = document.createElement('span');
+                tokenTextSpan.textContent = `Token: "${token.text}" (type: ${token.type})`;
+                
+                const validitySpan = document.createElement('span');
+                validitySpan.textContent = ` - Valid: ${isValid}`;
+                validitySpan.classList.add(isValid ? 'token-valid' : 'token-invalid');
+
+                resultItem.appendChild(tokenTextSpan);
+                resultItem.appendChild(validitySpan);
+
+                if (!isValid) {
+                    const charSet = new Set(literaryGreekOrthography.charset());
+                    for (const char of token.text) {
+                        if (!charSet.has(char)) {
+                            const invalidCharDetail = document.createElement('span');
+                            invalidCharDetail.classList.add('invalid-char-detail');
+                            invalidCharDetail.textContent = `(Invalid char: '${char}' U+${char.charCodeAt(0).toString(16).toUpperCase()})`;
+                            resultItem.appendChild(invalidCharDetail);
+                            break; // Show first invalid char
+                        }
+                    }
+                }
+                resultsDiv.appendChild(resultItem);
+            });
+
+        });
+    </script>
+</body>
+</html>
