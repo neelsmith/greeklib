@@ -1,3 +1,6 @@
+I have a javascript library named `greeklib.js` that I want to modify. Here is the current library:
+
+```
 // greeklib.js
 (function(root) {
     'use strict';
@@ -350,3 +353,13 @@
     }
 
 })(typeof self !== 'undefined' ? self : this);
+```
+
+
+I would like to add a Boolean function `isValidString`. It takes two parameters: 1) a string and 2) an `Orthography` object. `Orthography` objects have a method `charset` that returns the set of valid characters in that orthography. `isValidString` should check every character in the string parameter (first parameter). If all occur in the set returned by the `charset` method, then `isValidString` is `true`; otherwise it is `false`.
+
+Please implement this function and write an HTML to test it as follows. First, allow the user to enter a string value: use this as the default value:
+
+`urn:cts:greekLit:tlg0016.tlg001.omar:1.1.0|̔Ηροδότου ̔Αλικαρνησσέος ἱστορίης ἀπόδεξις ἥδε, ὡς μήτε τὰ γενόμενα ἐξ ἀνθρώπων τῷ χρόνῳ ἐξίτηλα γένηται, μήτε ἔργα μεγάλα τε καὶ θωμαστά, τὰ μὲν ̔́Ελλησι τὰ δὲ βαρβάροισι ἀποδεχθέντα, ἀκλεᾶ γένηται, τά τε ἄλλα καὶ δι' ἣν αἰτίην ἐπολέμησαν ἀλλήλοισι.`
+
+Then create an `Orthography` object with the `literarygreek()` function, and its `tokenize` function to tokenize the user's input text. This returns an Array of `Token` objects. Each `Token` object has a `text` property. Test the `text` property of each token by using it as the first parameter to the new `isValidString` function, with the orthography object as the second parameter. Display the results for each token.
