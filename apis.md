@@ -16,6 +16,17 @@ The library is UMD (Universal Module Definition) compatible, meaning it can be u
 
 ## 2. Installation / Usage
 
+
+
+### JSDelivr
+
+Easiest:
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/neelsmith/greeklib@1.2.1/greeklib.js"></script>
+```
+
+
 ### Browser
 ```html
 <script src="greeklib.js"></script>
