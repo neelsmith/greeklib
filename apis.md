@@ -23,7 +23,7 @@ The library is UMD (Universal Module Definition) compatible, meaning it can be u
 Easiest:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/neelsmith/greeklib@1.2.1/greeklib.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/neelsmith/greeklib@1.2.2/greeklib.js"></script>
 ```
 
 
