@@ -11,8 +11,8 @@
         }
     }
 
-    // Updated to include curly double quotes
-    const PUNCTUATION_CHARS = ['.', ',', ':', ';', '(', ')', '"', '“', '”'];
+    // Ensure parentheses are part of the defined punctuation characters
+    const PUNCTUATION_CHARS = ['.', ',', ':', ';', '(', ')', '"'];
     const SENTENCE_TERMINATORS = ['.', ';'];
     const NUMERIC_TOKEN_FLAG = 'ʹ';
 
@@ -68,7 +68,7 @@
                 continue;
             }
             const passageUrn = parts[0].trim();
-            const passageText = parts[1];
+            const passageText = parts[1]; // This is the text that gets tokenized
 
             if (!passageUrn) {
                 console.warn(`Skipping input pair with empty URN: "${pair}".`);
@@ -102,24 +102,28 @@
                 let currentTokenType = "";
                 let tokenUrnSuffix = "";
 
+                // Check if the current character is a defined punctuation mark
                 if (PUNCTUATION_CHARS.includes(char)) {
-                    currentTokenText = char;
+                    currentTokenText = char; // Punctuation token is just the character itself
                     currentTokenType = "punctuation";
-                    currentIndex++;
+                    currentIndex++; // Advance past this single punctuation character
+
                     if (!lastLexicalOrNumericUrnId) {
                         tokenUrnSuffix = "error_orphaned_punctuation_a";
                     } else {
                         tokenUrnSuffix = lastLexicalOrNumericUrnId + "a";
                     }
-                } else {
+                } else { // Not punctuation, so it's lexical or numeric
                     let tokenBuffer = "";
                     let tempIndex = currentIndex;
+                    // Build token until whitespace, EOL, or a known punctuation character is met
                     while (tempIndex < passageText.length &&
                            !/\s/.test(passageText[tempIndex]) &&
                            !PUNCTUATION_CHARS.includes(passageText[tempIndex])) {
                         tokenBuffer += passageText[tempIndex];
                         tempIndex++;
                     }
+
                     if (tokenBuffer.endsWith(NUMERIC_TOKEN_FLAG) && tokenBuffer.length > NUMERIC_TOKEN_FLAG.length) {
                         currentTokenText = tokenBuffer.slice(0, -NUMERIC_TOKEN_FLAG.length);
                         currentTokenType = "number";
@@ -127,7 +131,8 @@
                         currentTokenText = tokenBuffer;
                         currentTokenType = "lexical";
                     }
-                    currentIndex = tempIndex;
+                    currentIndex = tempIndex; // Advance main index to where this token ended
+
                     lexicalNumericCounterForUrn++;
                     tokenUrnSuffix = lexicalNumericCounterForUrn.toString();
                     lastLexicalOrNumericUrnId = tokenUrnSuffix;
@@ -224,10 +229,7 @@
             for (let i = 0x03C3; i <= 0x03C9; i++) charSet.add(String.fromCharCode(i));
             for (let i = 0x0391; i <= 0x03A1; i++) charSet.add(String.fromCharCode(i));
             for (let i = 0x03A3; i <= 0x03A9; i++) charSet.add(String.fromCharCode(i));
-            
-            // This will now include the curly quotes as it iterates over the updated PUNCTUATION_CHARS
-            PUNCTUATION_CHARS.forEach(p => charSet.add(p));
-            
+            PUNCTUATION_CHARS.forEach(p => charSet.add(p)); // Ensures orthography charset aligns
             [
                 0x03AC, 0x03AD, 0x03AE, 0x03AF, 0x03CC, 0x03CD, 0x03CE,
                 0x0386, 0x0388, 0x0389, 0x038A, 0x038C, 0x038E, 0x038F,
