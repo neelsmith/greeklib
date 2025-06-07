@@ -1,4 +1,4 @@
-# `greeklib.js` version 1.1.0
+# `greeklib.js` version 1.2.0
 
 > *A vibe coded Javascript library for working with text in polytonic ancient Greek.*
 
@@ -14,8 +14,8 @@ In addition to the library itself (`greeklib.js`) and the documentation (`apis.m
 - `ortho.html`: illustrates how to create an <code>Orthography</code> object for standard literary Greek orthography as found in printed editions, and use it to tokenize texts as `Token` objects.
 - `sentences.html`: illustrates how to analyze a text as sentences composed of a sequence of `Token`s.
 - `sentence-tokens.html`: illustrates how to analyze a text as sentences, and retrieve the corresponding `Token` objects.
-- `validstring.html`:
-- `validtoken.html`:
+- `validstring.html`: illustrates how to test that a string is valid in a given orthography
+- `validtoken.html`: illustrates how to test that a token is valid in a given orthography
 
 ## Planned development 
 
